@@ -53,7 +53,7 @@ Schema (strict, no extra keys):
               "title": "<string>",
               "url": "<string>",
               "publisher": "<string> (domain or brand)",
-              "resource_type": "docs" | "article" | "video" | "course",
+              "resource_type": "video" | "course" | "playlist" | "certificate",
               "is_free": <boolean>,
               "source_id": "<string> (e.g. src_01, src_02 — must match a SOURCES entry from web_search)"
             }
@@ -70,7 +70,7 @@ Rules:
 - Do NOT invent URLs. Only use URLs that appear in the web_search SOURCES returned by the tool.
 - Every resource must include source_id referencing the matching SOURCES item (e.g. src_01 for the first source URL).
 - If a good source cannot be found in SOURCES, omit the resource rather than guessing.
-- resources[].url MUST be https. No url shorteners. Any real, working link is fine: official docs, YouTube playlists, courses, articles, etc.
+- resources[].url MUST be https. No url shorteners. Any real, working link is fine: YouTube playlists, courses, Certificate of Completion, etc.
 - Choose resources that give genuine value: current, job-relevant, and proven to help people get hired. Prioritize the best materials for the target role and today's market—not filler or outdated content.
 - Output only the JSON object, nothing else.`;
 
