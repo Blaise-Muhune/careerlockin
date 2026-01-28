@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Target, Map, BarChart3, GraduationCap, Briefcase, BookOpen, Clock } from "lucide-react";
 import { getAuthState } from "@/lib/server/auth";
 import { LandingShell } from "@/components/layout/LandingShell";
+import { RoadmapPreviewMock } from "@/components/marketing/RoadmapPreviewMock";
 import { LandingJsonLd } from "@/components/seo/LandingJsonLd";
 import { Button } from "@/components/ui/button";
 
@@ -49,6 +50,25 @@ export default async function Home() {
             <Link href="#how-it-works">See how it works</Link>
           </Button>
         </div>
+      </section>
+
+      {/* See what you get — Roadmap Preview */}
+      <section
+        id="see-what-you-get"
+        className={`${containerClass} py-14 sm:py-20 border-t border-border/60`}
+      >
+        <h2 className="text-xl sm:text-2xl font-semibold text-foreground text-center mb-3 sm:mb-4">
+          See what you get
+        </h2>
+        <p className="text-muted-foreground text-center max-w-xl mx-auto mb-8 sm:mb-10 text-base">
+          A roadmap with phases, steps, resources, and time estimates.
+        </p>
+        <div className="w-full min-w-0 px-0 sm:px-4">
+          <RoadmapPreviewMock />
+        </div>
+        <p className="text-sm text-muted-foreground text-center mt-6 sm:mt-8 max-w-md mx-auto">
+          No fluff. Clear steps you can follow.
+        </p>
       </section>
 
       {/* How it works */}
