@@ -30,7 +30,7 @@ export function GenerateRoadmapButton() {
       </Button>
       {error && (
         <p className="text-sm text-destructive" role="alert">
-          Something went wrong. Please try again.
+          {error}
         </p>
       )}
     </div>

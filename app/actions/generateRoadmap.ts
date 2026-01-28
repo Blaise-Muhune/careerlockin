@@ -213,102 +213,139 @@ export async function generateRoadmap(
 ): Promise<GenerateRoadmapState> {
   const { userId } = await requireUserAndProfile();
 
-  const [entitlements, supabase] = await Promise.all([
-    getEntitlements(userId),
-    createClient(),
-  ]);
+  try {
+    const [entitlements, supabase] = await Promise.all([
+      getEntitlements(userId),
+      createClient(),
+    ]);
 
-  if (!entitlements.canGenerateExtraRoadmaps) {
-    const { count } = await supabase
-      .from("roadmaps")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
-    if ((count ?? 0) >= 1) {
+    if (!entitlements.canGenerateExtraRoadmaps) {
+      const { count } = await supabase
+        .from("roadmaps")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+      if ((count ?? 0) >= 1) {
+        return {
+          ok: false,
+          error: "Upgrade to Pro to generate more than one roadmap.",
+        };
+      }
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select(
+        "target_role, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference"
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (profileError || !profile) {
+      return { ok: false, error: "Profile not found. Complete onboarding first." };
+    }
+
+    const input = profileInputSchema.safeParse({
+      target_role: profile.target_role,
+      weekly_hours: profile.weekly_hours,
+      current_level: profile.current_level ?? "beginner",
+      time_horizon_weeks:
+        timeHorizonWeeksOverride ?? (profile.target_timeline_weeks ?? 16),
+      goal_intent: profile.goal_intent ?? "skill_upgrade",
+      target_timeline_weeks: profile.target_timeline_weeks ?? null,
+      prior_exposure: profile.prior_exposure ?? null,
+      learning_preference: profile.learning_preference ?? null,
+    });
+
+    if (!input.success) {
       return {
         ok: false,
-        error: "Upgrade to Pro to generate more than one roadmap.",
+        error: "Invalid profile data. Check target role and weekly hours.",
       };
     }
+
+    const apiKey = getEnv().OPENAI_API_KEY;
+    if (!apiKey) {
+      return { ok: false, error: "OpenAI is not configured." };
+    }
+
+    const openai = new OpenAI({ apiKey });
+    const userPrompt = buildUserPrompt({
+      ...input.data,
+      target_timeline_weeks: input.data.target_timeline_weeks ?? null,
+      prior_exposure: input.data.prior_exposure ?? null,
+      learning_preference: input.data.learning_preference ?? null,
+    });
+    const model = "gpt-5.2";
+
+    const response = await openai.responses.create({
+      model,
+      instructions: SYSTEM_PROMPT,
+      input: userPrompt,
+      tools: [{ type: "web_search" }],
+      tool_choice: "auto",
+      include: ["web_search_call.action.sources"],
+      text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
+      temperature: 0.3,
+    });
+
+    const rawText = response.output_text?.trim();
+    if (!rawText) {
+      return { ok: false, error: "No response from the model." };
+    }
+
+    const jsonStr = extractJson(rawText);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonStr) as unknown;
+    } catch {
+      void logError("roadmap-generation", new Error("Response was not valid JSON"), {
+        userId,
+      });
+      return { ok: false, error: "Could not parse roadmap. Try again." };
+    }
+
+    const parseResult = roadmapJsonSchema.safeParse(parsed);
+    if (!parseResult.success) {
+      const errMsg = parseResult.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("\n");
+      void logError("roadmap-generation", new Error("Schema validation failed"), {
+        userId,
+        errMsg,
+      });
+      return { ok: false, error: "Roadmap did not match schema. Try again." };
+    }
+
+    const sourcesMap = buildSourcesMap(
+      response.output as Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>
+    );
+    let roadmap = enforceGroundingAndValidation(parseResult.data, sourcesMap);
+    roadmap = await validateResourcesReachable(roadmap);
+
+    const roadmapId = await createRoadmapFromJson(userId, roadmap, model);
+    return { ok: true, roadmapId };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    void logError("roadmap-generation", err instanceof Error ? err : new Error(msg), {
+      userId,
+      hint:
+        "Likely causes: missing OPENAI_API_KEY, model access issue (gpt-5.2), or unapplied DB migrations (resources columns).",
+    });
+
+    // Surface a safe, actionable message without leaking internal details.
+    if (/column .* does not exist/i.test(msg)) {
+      return {
+        ok: false,
+        error:
+          "Roadmap generation is temporarily unavailable (database upgrade pending). Please try again shortly.",
+      };
+    }
+    if (/api key|unauthorized|invalid_api_key/i.test(msg)) {
+      return { ok: false, error: "Roadmap generation is not configured. Please contact support." };
+    }
+    if (/model|not found|does not exist/i.test(msg)) {
+      return { ok: false, error: "Roadmap generation model is unavailable. Please try again later." };
+    }
+    return { ok: false, error: "Could not create your roadmap. Please try again." };
   }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("target_role, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference")
-    .eq("user_id", userId)
-    .single();
-
-  if (profileError || !profile) {
-    return { ok: false, error: "Profile not found. Complete onboarding first." };
-  }
-
-  const input = profileInputSchema.safeParse({
-    target_role: profile.target_role,
-    weekly_hours: profile.weekly_hours,
-    current_level: profile.current_level ?? "beginner",
-    time_horizon_weeks: timeHorizonWeeksOverride ?? (profile.target_timeline_weeks ?? 16),
-    goal_intent: profile.goal_intent ?? "skill_upgrade",
-    target_timeline_weeks: profile.target_timeline_weeks ?? null,
-    prior_exposure: profile.prior_exposure ?? null,
-    learning_preference: profile.learning_preference ?? null,
-  });
-
-  if (!input.success) {
-    return {
-      ok: false,
-      error: "Invalid profile data. Check target role and weekly hours.",
-    };
-  }
-
-  const apiKey = getEnv().OPENAI_API_KEY;
-  if (!apiKey) {
-    return { ok: false, error: "OpenAI is not configured." };
-  }
-
-  const openai = new OpenAI({ apiKey });
-  const userPrompt = buildUserPrompt({
-    ...input.data,
-    target_timeline_weeks: input.data.target_timeline_weeks ?? null,
-    prior_exposure: input.data.prior_exposure ?? null,
-    learning_preference: input.data.learning_preference ?? null,
-  });
-  const model = "gpt-5.2";
-
-  const response = await openai.responses.create({
-    model,
-    instructions: SYSTEM_PROMPT,
-    input: userPrompt,
-    tools: [{ type: "web_search" }],
-    tool_choice: "auto",
-    include: ["web_search_call.action.sources"],
-    text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
-    temperature: 0.3,
-  });
-
-  const rawText = response.output_text?.trim();
-  if (!rawText) {
-    return { ok: false, error: "No response from the model." };
-  }
-
-  const jsonStr = extractJson(rawText);
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonStr) as unknown;
-  } catch {
-    void logError("roadmap-generation", new Error("Response was not valid JSON"), { userId });
-    return { ok: false, error: "Could not parse roadmap. Try again." };
-  }
-
-  const parseResult = roadmapJsonSchema.safeParse(parsed);
-  if (!parseResult.success) {
-    const errMsg = parseResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
-    void logError("roadmap-generation", new Error("Schema validation failed"), { userId, errMsg });
-    return { ok: false, error: "Roadmap did not match schema. Try again." };
-  }
-
-  const sourcesMap = buildSourcesMap(response.output as Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>);
-  let roadmap = enforceGroundingAndValidation(parseResult.data, sourcesMap);
-  roadmap = await validateResourcesReachable(roadmap);
-
-  const roadmapId = await createRoadmapFromJson(userId, roadmap, model);
-  return { ok: true, roadmapId };
 }
