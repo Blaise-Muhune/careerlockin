@@ -1,8 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { RoadmapJson } from "@/lib/server/ai/roadmapSchema";
-import { validateResourceUrl } from "@/lib/server/resources/validateResourceUrl";
-import { getFallbackResource } from "@/lib/server/resources/fallbacks";
 
 export type RoadmapWithSteps = {
   id: string;
@@ -139,38 +137,16 @@ export async function createRoadmapFromJson(
       }
 
       if (step.resources.length > 0) {
-        const sanitized = await Promise.all(
-          step.resources.map(async (r) => {
-            const status = await validateResourceUrl(r.url, { skipFetch: true });
-            if (status === "invalid") {
-              const fallback = getFallbackResource(step.title, step.description);
-              return {
-                step_id: stepRow.id,
-                title: fallback.title,
-                url: fallback.url,
-                resource_type: fallback.resource_type,
-                is_free: true,
-              };
-            }
-            if (status === "unknown") {
-              return {
-                step_id: stepRow.id,
-                title: r.title,
-                url: r.url,
-                resource_type: "unverified",
-                is_free: r.is_free,
-              };
-            }
-            return {
-              step_id: stepRow.id,
-              title: r.title,
-              url: r.url,
-              resource_type: r.resource_type,
-              is_free: r.is_free,
-            };
-          })
-        );
-        const { error: resError } = await supabase.from("resources").insert(sanitized);
+        const rows = step.resources.map((r) => ({
+          step_id: stepRow.id,
+          title: r.title,
+          url: r.url,
+          resource_type: r.resource_type,
+          is_free: r.is_free,
+          source_id: r.source_id || null,
+          verification_status: r.verification_status ?? null,
+        }));
+        const { error: resError } = await supabase.from("resources").insert(rows);
         if (resError) {
           throw new Error(resError.message);
         }

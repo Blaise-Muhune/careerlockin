@@ -7,12 +7,19 @@ import { z } from "zod";
  * No extra keys (enforced via .strict()).
  */
 
+const resourceTypeEnum = z.enum(["docs", "article", "video", "course"]);
+const verificationStatusEnum = z.enum(["verified", "unverified", "fallback"]);
+
 const resourceSchema = z
   .object({
     title: z.string().min(1),
     url: z.string().min(1),
-    resource_type: z.string(),
+    publisher: z.string().min(1),
+    resource_type: resourceTypeEnum,
     is_free: z.boolean(),
+    source_id: z.string(),
+    verification_status: verificationStatusEnum.optional(),
+    is_fallback: z.boolean().optional(),
   })
   .strict();
 

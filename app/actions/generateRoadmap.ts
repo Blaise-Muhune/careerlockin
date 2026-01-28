@@ -1,15 +1,17 @@
 "use server";
 
 import OpenAI from "openai";
+import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { requireUserAndProfile } from "@/lib/server/auth";
 import { getEnv } from "@/lib/server/env";
 import { logError } from "@/lib/server/logging";
 import { getEntitlements } from "@/lib/server/billing/entitlements";
 import { createClient } from "@/lib/supabase/server";
-import { roadmapJsonSchema } from "@/lib/server/ai/roadmapSchema";
+import { roadmapJsonSchema, type RoadmapJson, type RoadmapResource } from "@/lib/server/ai/roadmapSchema";
 import { createRoadmapFromJson } from "@/lib/server/db/roadmaps";
-import { APPROVED_RESOURCE_DOMAINS } from "@/lib/server/resources/approvedSources";
+import { validateUrl, verifyUrlReachable } from "@/lib/server/resources/validateUrl";
+import { getFallbackResource } from "@/lib/server/resources/fallbacks";
 
 const profileInputSchema = z.object({
   target_role: z.string().min(1),
@@ -26,9 +28,7 @@ export type GenerateRoadmapState =
   | { ok: true; roadmapId: string }
   | { ok: false; error: string };
 
-const APPROVED_DOMAINS_LIST = APPROVED_RESOURCE_DOMAINS.join(", ");
-
-const SYSTEM_PROMPT = `You are a career roadmap generator. Output ONLY valid JSON with no surrounding text, no markdown, no code fences.
+const SYSTEM_PROMPT = `You are a career roadmap generator focused on helping users land jobs in the current market. You have access to web_search. Use it to find the best, genuinely valuable learning resources—ones that will actually help the user get hired (skills employers want, up-to-date tools, interview-ready knowledge). Output a single JSON object that matches the schema below.
 
 Schema (strict, no extra keys):
 {
@@ -49,7 +49,14 @@ Schema (strict, no extra keys):
           "est_hours": <number>,
           "step_order": <positive int>,
           "resources": [
-            { "title": "<string>", "url": "<string>", "resource_type": "<string>", "is_free": <boolean> }
+            {
+              "title": "<string>",
+              "url": "<string>",
+              "publisher": "<string> (domain or brand)",
+              "resource_type": "docs" | "article" | "video" | "course",
+              "is_free": <boolean>,
+              "source_id": "<string> (e.g. src_01, src_02 — must match a SOURCES entry from web_search)"
+            }
           ]
         }
       ]
@@ -58,12 +65,13 @@ Schema (strict, no extra keys):
 }
 
 Rules:
-- Exactly 3 to 5 phases.
-- Each phase has exactly 4 to 7 steps.
-- Each step has 1 to 2 resources.
+- Exactly 3 to 5 phases. Each phase has exactly 4 to 7 steps. Each step has 1 to 2 resources.
 - est_hours must be a number (can be decimal).
-- resources[].url MUST be an https URL whose host is one of these domains only: ${APPROVED_DOMAINS_LIST}. Subdomains (e.g. developer.mozilla.org) are allowed. Do not use url shorteners or any other domains.
-- If unsure which link to use, prefer MDN (developer.mozilla.org) or the official docs for that tech (e.g. react.dev, nextjs.org, typescriptlang.org). Do not invent or guess URLs.
+- Do NOT invent URLs. Only use URLs that appear in the web_search SOURCES returned by the tool.
+- Every resource must include source_id referencing the matching SOURCES item (e.g. src_01 for the first source URL).
+- If a good source cannot be found in SOURCES, omit the resource rather than guessing.
+- resources[].url MUST be https. No url shorteners. Any real, working link is fine: official docs, YouTube playlists, courses, articles, etc.
+- Choose resources that give genuine value: current, job-relevant, and proven to help people get hired. Prioritize the best materials for the target role and today's market—not filler or outdated content.
 - Output only the JSON object, nothing else.`;
 
 function buildUserPrompt(params: {
@@ -77,7 +85,8 @@ function buildUserPrompt(params: {
   learning_preference: string | null | undefined;
 }): string {
   const lines: string[] = [
-    "Generate a tech career roadmap as a single JSON object.",
+    "1) Use web_search to find the best learning resources that will genuinely help this user land a job in the current market: up-to-date, job-relevant, and proven valuable (docs, courses, playlists, articles—only ones that actually give value).",
+    "2) Build a tech career roadmap as a single JSON object. Attach 1–2 resources per step, using only URLs from the web_search SOURCES. Use source_id (src_01, src_02, …) to reference each source. Every resource should be something that truly helps someone get hired for the target role.",
     "",
     `Target role: ${params.target_role}`,
     `Weekly hours available: ${params.weekly_hours}`,
@@ -95,16 +104,8 @@ function buildUserPrompt(params: {
   if (params.learning_preference) {
     lines.push(`Learning preference: ${params.learning_preference.replace("_", " ")}. Prefer resources that match (e.g. video vs reading vs hands-on).`);
   }
-  lines.push("", "Use the exact schema and rules from the system prompt. Output only the JSON.");
+  lines.push("", "Pick the best resources for the current job market. Use only https links from web_search SOURCES; no shorteners. Output only the JSON matching the schema.");
   return lines.join("\n");
-}
-
-function buildCorrectionPrompt(validationErrors: string): string {
-  return `Your previous output was invalid. Validation errors:
-
-${validationErrors}
-
-Output a corrected JSON object that satisfies the schema and all rules. Output only the JSON, nothing else.`;
 }
 
 function extractJson(text: string): string {
@@ -113,6 +114,98 @@ function extractJson(text: string): string {
   const end = trimmed.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return trimmed;
   return trimmed.slice(start, end + 1);
+}
+
+type SourceEntry = { url: string };
+
+function buildSourcesMap(output: Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>): Map<string, SourceEntry> {
+  const map = new Map<string, SourceEntry>();
+  let idx = 0;
+  for (const item of output) {
+    if (item.type !== "web_search_call" || !item.action?.sources) continue;
+    for (const src of item.action.sources) {
+      if (src?.url) {
+        idx += 1;
+        map.set(`src_${String(idx).padStart(2, "0")}`, { url: src.url });
+      }
+    }
+  }
+  return map;
+}
+
+type EnrichedResource = RoadmapResource & { verification_status: "verified" | "unverified" | "fallback"; is_fallback?: boolean };
+
+function enforceGroundingAndValidation(
+  parsed: RoadmapJson,
+  sourcesMap: Map<string, SourceEntry>
+): RoadmapJson {
+  const phases = parsed.phases.map((phase) => ({
+    ...phase,
+    steps: phase.steps.map((step) => {
+      const resources: EnrichedResource[] = step.resources.map((r) => {
+        const entry = r.source_id ? sourcesMap.get(r.source_id) : undefined;
+        const urlMatches = entry && r.url === entry.url;
+        if (!r.source_id || !entry || !urlMatches) {
+          const fallback = getFallbackResource(step.title, step.description);
+          return {
+            title: fallback.title,
+            url: fallback.url,
+            publisher: new URL(fallback.url).hostname,
+            resource_type: "docs" as const,
+            is_free: true,
+            source_id: "",
+            verification_status: "fallback" as const,
+            is_fallback: true,
+          };
+        }
+        const validation = validateUrl(r.url);
+        if (validation.status === "invalid") {
+          const fallback = getFallbackResource(step.title, step.description);
+          return {
+            title: fallback.title,
+            url: fallback.url,
+            publisher: new URL(fallback.url).hostname,
+            resource_type: "docs" as const,
+            is_free: true,
+            source_id: r.source_id,
+            verification_status: "fallback" as const,
+            is_fallback: true,
+          };
+        }
+        return {
+          ...r,
+          verification_status: validation.status === "valid" ? ("verified" as const) : ("unverified" as const),
+          is_fallback: false,
+        };
+      });
+      return { ...step, resources };
+    }),
+  }));
+  return { ...parsed, phases };
+}
+
+async function validateResourcesReachable(parsed: RoadmapJson): Promise<RoadmapJson> {
+  const phases = await Promise.all(
+    parsed.phases.map(async (phase) => ({
+      ...phase,
+      steps: await Promise.all(
+        phase.steps.map(async (step) => ({
+          ...step,
+          resources: await Promise.all(
+            step.resources.map(async (r) => {
+              if (r.verification_status === "fallback" || r.is_fallback) return r;
+              const reach = await verifyUrlReachable(r.url);
+              if (reach.status === "unknown" && r.verification_status === "verified") {
+                return { ...r, verification_status: "unverified" as const };
+              }
+              return r;
+            })
+          ),
+        }))
+      ),
+    }))
+  );
+  return { ...parsed, phases };
 }
 
 export async function generateRoadmap(
@@ -140,7 +233,7 @@ export async function generateRoadmap(
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("target_role, weekly_hours, current_level")
+    .select("target_role, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference")
     .eq("user_id", userId)
     .single();
 
@@ -152,7 +245,11 @@ export async function generateRoadmap(
     target_role: profile.target_role,
     weekly_hours: profile.weekly_hours,
     current_level: profile.current_level ?? "beginner",
-    time_horizon_weeks: timeHorizonWeeksOverride ?? 16,
+    time_horizon_weeks: timeHorizonWeeksOverride ?? (profile.target_timeline_weeks ?? 16),
+    goal_intent: profile.goal_intent ?? "skill_upgrade",
+    target_timeline_weeks: profile.target_timeline_weeks ?? null,
+    prior_exposure: profile.prior_exposure ?? null,
+    learning_preference: profile.learning_preference ?? null,
   });
 
   if (!input.success) {
@@ -174,73 +271,44 @@ export async function generateRoadmap(
     prior_exposure: input.data.prior_exposure ?? null,
     learning_preference: input.data.learning_preference ?? null,
   });
-  const model = "gpt-4o-mini";
+  const model = "gpt-5.2";
 
-  let lastRaw: string | null = null;
-  let lastValidationError: string | null = null;
-  const maxAttempts = 3;
+  const response = await openai.responses.create({
+    model,
+    instructions: SYSTEM_PROMPT,
+    input: userPrompt,
+    tools: [{ type: "web_search" }],
+    tool_choice: "auto",
+    include: ["web_search_call.action.sources"],
+    text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
+    temperature: 0.3,
+  });
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userPrompt },
-    ];
-
-    if (attempt > 0 && lastValidationError) {
-      messages.push({
-        role: "assistant",
-        content: lastRaw ?? "",
-      });
-      messages.push({
-        role: "user",
-        content: buildCorrectionPrompt(lastValidationError),
-      });
-    }
-
-    const completion = await openai.chat.completions.create({
-      model,
-      messages,
-      temperature: 0.3,
-    });
-
-    const content = completion.choices[0]?.message?.content?.trim();
-    if (!content) {
-      return { ok: false, error: "No response from the model." };
-    }
-
-    lastRaw = content;
-    const jsonStr = extractJson(content);
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonStr) as unknown;
-    } catch {
-      lastValidationError = "Output is not valid JSON.";
-      continue;
-    }
-
-    const result = roadmapJsonSchema.safeParse(parsed);
-    if (result.success) {
-      const roadmapId = await createRoadmapFromJson(
-        userId,
-        result.data,
-        model
-      );
-      return { ok: true, roadmapId };
-    }
-
-    const err = result.error;
-    lastValidationError = err.issues
-      .map((i) => `${i.path.join(".")}: ${i.message}`)
-      .join("\n");
+  const rawText = response.output_text?.trim();
+  if (!rawText) {
+    return { ok: false, error: "No response from the model." };
   }
 
-  void logError("roadmap-generation", new Error("Valid roadmap after retries failed"), {
-    userId,
-    lastValidationError: lastValidationError ?? undefined,
-  });
-  return {
-    ok: false,
-    error: "Could not generate valid roadmap after retries. Try again.",
-  };
+  const jsonStr = extractJson(rawText);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr) as unknown;
+  } catch {
+    void logError("roadmap-generation", new Error("Response was not valid JSON"), { userId });
+    return { ok: false, error: "Could not parse roadmap. Try again." };
+  }
+
+  const parseResult = roadmapJsonSchema.safeParse(parsed);
+  if (!parseResult.success) {
+    const errMsg = parseResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
+    void logError("roadmap-generation", new Error("Schema validation failed"), { userId, errMsg });
+    return { ok: false, error: "Roadmap did not match schema. Try again." };
+  }
+
+  const sourcesMap = buildSourcesMap(response.output as Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>);
+  let roadmap = enforceGroundingAndValidation(parseResult.data, sourcesMap);
+  roadmap = await validateResourcesReachable(roadmap);
+
+  const roadmapId = await createRoadmapFromJson(userId, roadmap, model);
+  return { ok: true, roadmapId };
 }
