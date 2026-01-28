@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { siteUrl } from "@/lib/seo/site";
 
 const signUpSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email"),
@@ -25,6 +26,8 @@ const signInSchema = z.object({
 
 export type SignUpState = {
   error?: string;
+  requiresEmailConfirm?: boolean;
+  email?: string;
   fields?: { email?: string; password?: string; accept_legal?: string };
 };
 
@@ -54,7 +57,15 @@ export async function signUp(
   const { email, password } = parsed.data;
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      // Ensures Supabase confirmation links redirect to your real site (not localhost)
+      // IMPORTANT: this URL must be allowlisted in Supabase Auth -> URL Configuration.
+      emailRedirectTo: `${siteUrl}/login`,
+    },
+  });
 
   if (error) {
     return {
@@ -65,8 +76,8 @@ export async function signUp(
 
   if (data.user && !data.session) {
     return {
-      error: "Check your email to confirm your account.",
-      fields: { email },
+      requiresEmailConfirm: true,
+      email,
     };
   }
 
