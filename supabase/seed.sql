@@ -1,0 +1,2 @@
+-- Optional seed data. Run manually after migrations if needed.
+-- Leave empty or add dev-only fixtures.

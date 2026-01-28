@@ -1,0 +1,16 @@
+---
+description: Supabase RLS + Stripe webhook safety
+globs: "{lib/server/**,app/**,supabase/**,scripts/**}"
+alwaysApply: true
+---
+
+# Supabase
+- Use Supabase Auth as source of truth for user identity.
+- Every user-owned table must have `user_id` and RLS policies.
+- Never trust client input. Enforce access server-side too.
+
+# Stripe
+- Verify webhook signatures.
+- Store Stripe customer id + subscription status in DB.
+- Gates must be enforced server-side (not only UI).
+- Never log secrets or full tokens.

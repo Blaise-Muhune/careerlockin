@@ -1,0 +1,15 @@
+---
+description: Roadmap generation must be strict JSON validated by Zod
+globs: "{app/**,lib/**}"
+alwaysApply: true
+---
+
+# AI output rules
+- Roadmap generation must return STRICT JSON only.
+- Validate JSON with Zod. If invalid, retry with a correction prompt.
+- Store the validated JSON and extracted rows (phases/steps/resources).
+- Store metadata: model, version, created_at.
+
+# No content bloat
+- Prefer 1 to 2 resources per step.
+- Keep steps actionable with estimated hours.

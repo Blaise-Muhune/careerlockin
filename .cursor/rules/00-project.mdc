@@ -1,0 +1,23 @@
+---
+description: Project stack + architecture defaults
+globs: "**/*"
+alwaysApply: true
+---
+
+# Stack (fixed)
+- Next.js App Router + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (Auth + Postgres + RLS)
+- Stripe (subscriptions + webhooks)
+- React Hook Form + Zod
+- Prefer Server Actions for mutations
+
+# Repo conventions
+- pnpm only
+- server-only code in `lib/server/**`
+- shared utils in `lib/**`
+- server actions in `app/actions/**`
+- keep diffs minimal, avoid unrelated refactors
+
+# Product flow
+Auth -> Onboarding -> Generate roadmap (JSON) -> Save -> Track progress -> Billing gates

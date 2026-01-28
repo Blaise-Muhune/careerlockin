@@ -1,0 +1,20 @@
+---
+description: Quality gates and agent workflow
+globs: "**/*"
+alwaysApply: true
+---
+
+# Workflow
+- Start each task with a 3 to 7 bullet plan, then execute.
+- Make changes in small verifiable steps.
+- After each step, ensure the app still runs.
+
+# Must pass
+- `pnpm lint`
+- `pnpm typecheck`
+- If tests exist: `pnpm test`
+
+# Code quality
+- No `any` unless unavoidable, explain inline.
+- Validate user input with Zod on the server.
+- Add loading + error states for async UI.
