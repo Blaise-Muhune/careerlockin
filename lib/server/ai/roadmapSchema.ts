@@ -18,8 +18,10 @@ const resourceSchema = z
     resource_type: resourceTypeEnum,
     is_free: z.boolean(),
     source_id: z.string(),
-    verification_status: verificationStatusEnum.optional(),
-    is_fallback: z.boolean().optional(),
+    // Structured outputs require all fields to be "required"; to allow absence, use a union with null.
+    // The model may emit `null` for these and we'll overwrite them during post-processing.
+    verification_status: z.union([verificationStatusEnum, z.null()]),
+    is_fallback: z.union([z.boolean(), z.null()]),
   })
   .strict();
 

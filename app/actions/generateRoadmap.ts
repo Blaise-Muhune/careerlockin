@@ -275,7 +275,7 @@ export async function generateRoadmap(
       prior_exposure: input.data.prior_exposure ?? null,
       learning_preference: input.data.learning_preference ?? null,
     });
-    const model = "gpt-4o-mini";
+    const model = "gpt-4.1-mini";
 
     const response = await openai.responses.create({
       model,
@@ -331,6 +331,14 @@ export async function generateRoadmap(
       hint:
         "Likely causes: missing OPENAI_API_KEY, model access issue (gpt-5.2), or unapplied DB migrations (resources columns).",
     });
+
+    // In development, surface the concrete error message to make debugging easier.
+    if (process.env.NODE_ENV !== "production") {
+      return {
+        ok: false,
+        error: `Dev error: ${msg}`,
+      };
+    }
 
     // Surface a safe, actionable message without leaking internal details.
     if (/column .* does not exist/i.test(msg)) {
