@@ -275,7 +275,7 @@ export async function generateRoadmap(
       prior_exposure: input.data.prior_exposure ?? null,
       learning_preference: input.data.learning_preference ?? null,
     });
-    const model = "gpt-5.2";
+    const model = "gpt-4o-mini";
 
     const response = await openai.responses.create({
       model,
