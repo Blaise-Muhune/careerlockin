@@ -9,13 +9,15 @@ import {
 } from "@/lib/server/db/roadmaps";
 import { getProfileWeeklyHours } from "@/lib/server/db/profiles";
 import { listTimeLogsForWeek } from "@/lib/server/db/timeLogs";
-import {
-  getWeeklyCheckin,
-  listRecentCheckins,
-} from "@/lib/server/db/checkins";
+import { listRecentCheckins } from "@/lib/server/db/checkins";
 import { getCurrentWork } from "@/lib/server/db/currentWork";
 import { getProgressMapForRoadmap } from "@/lib/server/db/progress";
 import { getPhaseProgress } from "@/lib/server/roadmap/estimates";
+import {
+  countNetworkingActionsForWeek,
+  getProfileNetworkingSettings,
+} from "@/lib/server/db/networking";
+import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
 import {
   getDefaultWeekStartDetroit,
   getWeekEndFromStart,
@@ -39,6 +41,7 @@ import { PhaseCompletionChart } from "./phase-completion-chart";
 import { Gated } from "@/components/billing/Gated";
 import { LockedOverlay } from "@/components/billing/LockedOverlay";
 import { ShareProgressButton } from "@/components/share/ShareProgressButton";
+import { NetworkingThisWeekCard } from "./networking-this-week-card";
 
 export default async function DashboardPage() {
   const { userId } = await requireUserAndProfile();
@@ -48,8 +51,9 @@ export default async function DashboardPage() {
   const [
     roadmap,
     profileHours,
+    networkingSettings,
+    networkingCompletedThisWeek,
     timeLogsThisWeek,
-    weeklyCheckinThisWeek,
     recentCheckins,
     currentWork,
     weeklyTrend,
@@ -58,8 +62,9 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     getLatestRoadmapForUser(userId),
     getProfileWeeklyHours(userId),
+    getProfileNetworkingSettings(userId),
+    countNetworkingActionsForWeek(userId, weekStart),
     listTimeLogsForWeek(userId, weekStart, weekEnd),
-    getWeeklyCheckin(userId, weekStart),
     listRecentCheckins(userId, 8),
     getCurrentWork(userId),
     getWeeklyMinutesTrend(userId, [
@@ -115,6 +120,17 @@ export default async function DashboardPage() {
     currentStepPhaseIndex === 0 ||
     entitlements.canUseTracking;
 
+  const networkingGoal = networkingSettings?.networking_weekly_goal ?? 1;
+  const networkingGuidance = getNetworkingGuidance({
+    profile: networkingSettings,
+    targetRole: roadmap?.target_role ?? null,
+    currentPhaseIndex: currentStepPhaseIndex ?? 0,
+    currentPhaseTitle: currentWork?.phase_title ?? null,
+    currentStepTitle,
+  });
+  const recommendedNetworkingAction =
+    networkingGuidance.suggested_actions[0] ?? null;
+
   return (
     <div className="flex flex-col gap-6 sm:gap-8 lg:gap-10 w-full min-h-0">
       <PageHeader
@@ -146,13 +162,14 @@ export default async function DashboardPage() {
         hoursThisWeek={completedHours}
         daysActiveThisWeek={daysLoggedThisWeek}
         stepsCompleted={completedSteps}
+        networkingActionsThisWeek={networkingCompletedThisWeek}
       />
 
       <div className="w-full max-w-md">
         <EncouragementCard message={encouragementMessage} />
       </div>
 
-      {(!entitlements.canViewFullRoadmap || entitlements.canViewFullRoadmap) && hasRoadmap && (
+      {hasRoadmap && (
         <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
           {!entitlements.canViewFullRoadmap ? (
             <p className="text-sm text-muted-foreground">
@@ -178,22 +195,31 @@ export default async function DashboardPage() {
 
       <section className="grid gap-6 sm:grid-cols-2 items-start" aria-label="Weekly and current work">
         <ThisWeekCard
-          weekStart={weekStart}
           weeklyHours={weeklyHours}
           completedHours={completedHours}
           timeLogs={timeLogsThisWeek}
-          initialNotes={weeklyCheckinThisWeek?.notes ?? ""}
           defaultLogDate={today}
           canUseTracking={canUseTimeLogs}
+          networkingGoal={networkingGoal}
         />
-        <InProgressCard
-          currentWork={currentWork}
-          currentStepTitle={currentStepTitle}
-          hasRoadmap={hasRoadmap}
-          weeklyHours={weeklyHours}
-          phaseProgress={phaseProgress}
-          canUseTracking={canUseTrackingInProgress}
-        />
+        <div className="grid gap-6">
+          <InProgressCard
+            currentWork={currentWork}
+            currentStepTitle={currentStepTitle}
+            hasRoadmap={hasRoadmap}
+            weeklyHours={weeklyHours}
+            phaseProgress={phaseProgress}
+            canUseTracking={canUseTrackingInProgress}
+          />
+          <NetworkingThisWeekCard
+            weekStart={weekStart}
+            goal={networkingGoal}
+            completed={networkingCompletedThisWeek}
+            weeklyFocusTitle={networkingGuidance.weekly_focus_title}
+            weeklyFocusDescription={networkingGuidance.weekly_focus_description}
+            recommendedAction={recommendedNetworkingAction}
+          />
+        </div>
       </section>
 
       <section className="space-y-4" aria-label="Progress summary">

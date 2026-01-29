@@ -1,6 +1,6 @@
 # Time tracking
 
-Time tracking is built from **default weekly hours** (profile), **daily time logs** (`time_logs`), and **weekly notes/snapshots** (`weekly_checkins`).
+Time tracking is built from **default weekly hours** (profile) and **daily time logs** (`time_logs`). Each time log can have an optional note. **Recent check-ins** shows past weeks from `weekly_checkins` (legacy snapshots); new weeks are not written unless another flow populates them.
 
 ---
 
@@ -39,7 +39,7 @@ Users add time whenever they work: date, minutes, and an optional note. There is
 ## Weekly sums (completed hours)
 
 - **Current week:** Completed hours = `SUM(time_logs.minutes) / 60` for the current week (Monday–Sunday in America/Detroit). Computed on the server when rendering the dashboard.
-- **Past weeks:** When the user saves “Week notes”, the app writes `weekly_checkins` with that week’s `week_start`, `notes`, and a **snapshot** of completed hours from `time_logs` for that week. That snapshot is used for “Recent check-ins” and any history view. The source of truth for “how much did I do this week?” is always the sum of `time_logs` for that week; the snapshot is for display and backfill.
+- **Past weeks:** “Recent check-ins” reads from `weekly_checkins` (weeks that were previously saved). Notes are per time log; there is no separate “week notes” flow.
 
 ---
 
@@ -48,7 +48,6 @@ Users add time whenever they work: date, minutes, and an optional note. There is
 - **Add:** User picks date (default today), minutes, optional note → “Add” → new row in `time_logs`. Dashboard refreshes; “This week” completed hours and the list update.
 - **Edit:** User clicks “Edit” on a time log, changes minutes and/or note, then “Save” → `updateTimeLog`. The list and weekly sum update after refresh.
 - **Delete:** User clicks “Delete” on a time log → `deleteTimeLog`. The list and weekly sum update after refresh.
-- **Week notes:** User edits the “Week notes” textarea and clicks “Save notes” → `saveWeeklyNotesAction` loads `time_logs` for that week, sums minutes, then `upsertWeeklyCheckin(userId, week_start, completedHours, notes)`. That row is what “Recent check-ins” shows for that week.
 
 ---
 

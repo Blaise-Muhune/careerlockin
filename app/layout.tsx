@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 import { RegisterSW } from "@/components/pwa/RegisterSW";
 import {
   siteName,
@@ -82,12 +83,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <RegisterSW />
+        <ThemeProvider>
+          {children}
+          <RegisterSW />
+        </ThemeProvider>
       </body>
     </html>
   );

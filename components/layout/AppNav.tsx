@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
@@ -50,6 +51,7 @@ export function AppNav() {
             </Button>
           );
         })}
+        <ThemeToggle />
         <form action={logout} className="inline-flex">
           <Button
             type="submit"
@@ -112,6 +114,9 @@ export function AppNav() {
                 </Link>
               );
             })}
+            <div className="flex min-h-[48px] items-center px-4">
+              <ThemeToggle />
+            </div>
             <form action={logout} className="block">
               <button
                 type="submit"

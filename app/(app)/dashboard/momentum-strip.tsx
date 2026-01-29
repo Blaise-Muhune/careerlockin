@@ -1,15 +1,17 @@
-import { Clock, CalendarDays, CheckCircle } from "lucide-react";
+import { Clock, CalendarDays, CheckCircle, MessageSquare } from "lucide-react";
 
 type MomentumStripProps = {
   hoursThisWeek: number;
   daysActiveThisWeek: number;
   stepsCompleted: number;
+  networkingActionsThisWeek?: number;
 };
 
 export function MomentumStrip({
   hoursThisWeek,
   daysActiveThisWeek,
   stepsCompleted,
+  networkingActionsThisWeek = 0,
 }: MomentumStripProps) {
   return (
     <div
@@ -44,6 +46,15 @@ export function MomentumStrip({
         <span>
           <span className="text-primary">{stepsCompleted}</span>
           <span className="text-muted-foreground font-normal"> steps completed</span>
+        </span>
+      </span>
+      <span className="flex items-center gap-2.5 font-medium tabular-nums text-foreground">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <MessageSquare className="h-4 w-4" aria-hidden />
+        </span>
+        <span>
+          <span className="text-primary">{networkingActionsThisWeek}</span>
+          <span className="text-muted-foreground font-normal"> networking actions</span>
         </span>
       </span>
     </div>

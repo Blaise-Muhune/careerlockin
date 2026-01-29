@@ -135,15 +135,23 @@ export async function POST(request: Request) {
         const firstItem = sub.items.data[0];
         const priceId = firstItem?.price.id ?? null;
         const periodEnd = firstItem?.current_period_end;
+        const periodEndIso = periodEnd
+          ? new Date(periodEnd * 1000).toISOString()
+          : null;
+        const isActive =
+          sub.status === "active" || sub.status === "trialing";
+        const cancelAtPeriodEndIso =
+          sub.cancel_at_period_end && periodEnd && isActive
+            ? new Date(periodEnd * 1000).toISOString()
+            : null;
 
         const { error } = await supabase
           .from("subscriptions")
           .update({
             status: sub.status,
             price_id: priceId,
-            current_period_end: periodEnd
-              ? new Date(periodEnd * 1000).toISOString()
-              : null,
+            current_period_end: periodEndIso,
+            cancel_at_period_end: cancelAtPeriodEndIso,
             updated_at: new Date().toISOString(),
           })
           .eq("stripe_subscription_id", sub.id);

@@ -1,7 +1,7 @@
 /**
  * Dev-only sanity check: roadmap resource invariants.
  * Run: pnpm run test:roadmap
- * Asserts: every resource url is https, every resource has source_id or is fallback.
+ * Asserts: every resource url is https, every resource has source_id.
  */
 
 import { assertRoadmapInvariants } from "../lib/roadmapInvariants";
@@ -16,23 +16,11 @@ const validRoadmap = {
               url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
               source_id: "src_01",
               verification_status: "verified" as const,
-              is_fallback: false,
             },
             {
               url: "https://www.youtube.com/playlist?list=example",
               source_id: "src_02",
               verification_status: "verified" as const,
-              is_fallback: false,
-            },
-          ],
-        },
-        {
-          resources: [
-            {
-              url: "https://developer.mozilla.org/en-US/docs/Web",
-              source_id: "",
-              verification_status: "fallback" as const,
-              is_fallback: true,
             },
           ],
         },
@@ -42,7 +30,7 @@ const validRoadmap = {
 };
 
 assertRoadmapInvariants(validRoadmap);
-console.log("OK: valid roadmap passed invariant checks (https + source_id or fallback)");
+console.log("OK: valid roadmap passed invariant checks (https + source_id)");
 
 let invalidThrew = false;
 try {
@@ -56,7 +44,6 @@ try {
                 url: "http://example.com/not-https",
                 source_id: "src_01",
                 verification_status: "verified",
-                is_fallback: false,
               },
             ],
           },

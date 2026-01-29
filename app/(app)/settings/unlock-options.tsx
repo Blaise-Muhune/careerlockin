@@ -16,9 +16,14 @@ import type { Entitlements } from "@/lib/server/billing/entitlements";
 
 type UnlockOptionsProps = {
   entitlements: Entitlements;
+  /** When true, user canceled Pro but still has access until period end; show Pro/Unlock again so they can resubscribe or one-time. */
+  cancelAtPeriodEnd?: boolean;
 };
 
-export function UnlockOptions({ entitlements }: UnlockOptionsProps) {
+export function UnlockOptions({
+  entitlements,
+  cancelAtPeriodEnd = false,
+}: UnlockOptionsProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"unlock" | "pro" | "portal" | null>(null);
 
@@ -59,12 +64,12 @@ export function UnlockOptions({ entitlements }: UnlockOptionsProps) {
   }
 
   const showUnlockPlan = !entitlements.canViewFullRoadmap;
-  const showPro = !entitlements.isPro;
+  const showPro = !entitlements.isPro || cancelAtPeriodEnd;
   const showManageBilling = entitlements.isPro;
 
   return (
-    <section className="space-y-4">
-      <h2 className="text-sm font-medium text-foreground">Unlock options</h2>
+    <section id="unlock-options" className="space-y-4" aria-labelledby="unlock-options-heading">
+      <h2 id="unlock-options-heading" className="text-sm font-medium text-foreground">Unlock options</h2>
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}
@@ -94,11 +99,15 @@ export function UnlockOptions({ entitlements }: UnlockOptionsProps) {
         {showPro && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Upgrade to Pro</CardTitle>
+              <CardTitle className="text-base">
+                {cancelAtPeriodEnd ? "Resubscribe to Pro" : "Upgrade to Pro"}
+              </CardTitle>
               <CardDescription>
-                {showUnlockPlan
-                  ? "Subscription includes full roadmap plus tracking, charts, and insights."
-                  : "Unlock tracking, time logs, charts, and insights."}
+                {cancelAtPeriodEnd
+                  ? "Resubscribe before your period ends to keep tracking and insights."
+                  : showUnlockPlan
+                    ? "Subscription includes full roadmap plus tracking, charts, and insights."
+                    : "Unlock tracking, time logs, charts, and insights."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -107,7 +116,11 @@ export function UnlockOptions({ entitlements }: UnlockOptionsProps) {
                 onClick={handlePro}
                 disabled={!!pending}
               >
-                {pending === "pro" ? "Redirecting…" : "Upgrade to Pro"}
+                {pending === "pro"
+                  ? "Redirecting…"
+                  : cancelAtPeriodEnd
+                    ? "Resubscribe to Pro"
+                    : "Upgrade to Pro"}
               </Button>
             </CardContent>
           </Card>

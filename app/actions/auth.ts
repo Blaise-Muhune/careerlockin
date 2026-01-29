@@ -113,6 +113,59 @@ export async function signIn(
   redirect("/dashboard");
 }
 
+export type RequestPasswordResetState =
+  | { ok: true; email: string }
+  | { ok: false; error: string; fields?: { email?: string } };
+
+export async function requestPasswordReset(
+  _prev: RequestPasswordResetState | null,
+  formData: FormData
+): Promise<RequestPasswordResetState> {
+  const email = formData.get("email");
+  const parsed = z
+    .string()
+    .min(1, "Email is required")
+    .email("Invalid email")
+    .safeParse(email);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Invalid email",
+      fields: { email: first?.message },
+    };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+    redirectTo: `${siteUrl}/reset-password`,
+  });
+  if (error) {
+    return { ok: false, error: error.message, fields: { email: error.message } };
+  }
+  return { ok: true, email: parsed.data };
+}
+
+export type SignInWithGoogleState =
+  | { url: string }
+  | { error: string };
+
+export async function signInWithGoogle(): Promise<SignInWithGoogleState> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${siteUrl}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+  if (error) return { error: error.message };
+  if (!data?.url) return { error: "Failed to get Google sign-in URL" };
+  return { url: data.url };
+}
+
 export async function logout(): Promise<never> {
   const supabase = await createClient();
   await supabase.auth.signOut();

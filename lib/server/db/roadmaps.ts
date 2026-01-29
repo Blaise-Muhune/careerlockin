@@ -14,6 +14,8 @@ export type RoadmapWithSteps = {
     description: string;
     est_hours: number | null;
     step_order: number;
+    phase_project: unknown | null;
+    practices: unknown | null;
     resources: Array<{
       id: string;
       title: string;
@@ -45,7 +47,7 @@ export async function getLatestRoadmapForUser(
 
   const { data: steps, error: stepsError } = await supabase
     .from("roadmap_steps")
-    .select("id, phase, title, description, est_hours, step_order")
+    .select("id, phase, title, description, est_hours, step_order, phase_project, practices")
     .eq("roadmap_id", roadmap.id)
     .order("step_order", { ascending: true });
 
@@ -118,7 +120,8 @@ export async function createRoadmapFromJson(
   const roadmapId = roadmap.id;
 
   for (const phase of parsed.phases) {
-    for (const step of phase.steps) {
+    for (let idx = 0; idx < phase.steps.length; idx++) {
+      const step = phase.steps[idx]!;
       const { data: stepRow, error: stepError } = await supabase
         .from("roadmap_steps")
         .insert({
@@ -128,6 +131,9 @@ export async function createRoadmapFromJson(
           description: step.description,
           est_hours: step.est_hours,
           step_order: step.step_order,
+          // Store the phase project only once (on the first step row of the phase)
+          phase_project: idx === 0 ? phase.phase_project : null,
+          practices: step.practices ?? [],
         })
         .select("id")
         .single();

@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmailTestSection } from "./EmailTestSection";
 
 function MetricCard({
   title,
@@ -224,6 +225,10 @@ export async function AdminDashboard() {
             sub="Subscriptions canceled"
           />
         </div>
+      </Section>
+
+      <Section title="Test email reminders">
+        <EmailTestSection />
       </Section>
     </div>
   );

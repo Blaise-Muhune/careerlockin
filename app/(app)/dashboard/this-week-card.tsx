@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -12,49 +14,79 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { addTimeLogAction } from "@/app/actions/addTimeLog";
 import { editTimeLogAction } from "@/app/actions/editTimeLog";
 import { deleteTimeLogAction } from "@/app/actions/deleteTimeLog";
-import { saveWeeklyNotesAction } from "@/app/actions/saveWeeklyNotes";
+import { logNetworkingAction } from "@/app/actions/logNetworkingAction";
+import { updateNetworkingGoalAction } from "@/app/actions/updateNetworkingGoal";
 import type { TimeLogRow } from "@/lib/server/db/timeLogs";
 
 type ThisWeekCardProps = {
-  weekStart: string;
   weeklyHours: number;
   completedHours: number;
   timeLogs: TimeLogRow[];
-  initialNotes: string;
   defaultLogDate: string;
   canUseTracking?: boolean;
+  networkingGoal: number;
 };
 
 export function ThisWeekCard({
-  weekStart,
   weeklyHours,
   completedHours,
   timeLogs,
-  initialNotes,
   defaultLogDate,
   canUseTracking = true,
+  networkingGoal,
 }: ThisWeekCardProps) {
   const router = useRouter();
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
   const [addState, addFormAction, isAddPending] = useActionState(
     addTimeLogAction,
-    null
-  );
-  const [notesState, notesFormAction, isNotesPending] = useActionState(
-    saveWeeklyNotesAction,
     null
   );
   const [delState, delFormAction] = useActionState(deleteTimeLogAction, null);
   const [editState, editFormAction] = useActionState(editTimeLogAction, null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [networkState, networkFormAction, isNetworkPending] = useActionState(
+    logNetworkingAction,
+    null
+  );
+  const [goalState, goalFormAction, isGoalPending] = useActionState(
+    updateNetworkingGoalAction,
+    null
+  );
 
   useEffect(() => {
-    if (addState?.ok ?? notesState?.ok ?? delState?.ok ?? editState?.ok) {
+    if (
+      addState?.ok ??
+      delState?.ok ??
+      editState?.ok ??
+      networkState?.ok ??
+      goalState?.ok
+    ) {
+      if (networkState?.ok) closeRef.current?.click();
       router.refresh();
     }
-  }, [addState?.ok, notesState?.ok, delState?.ok, editState?.ok, router]);
+  }, [
+    addState?.ok,
+    delState?.ok,
+    editState?.ok,
+    networkState?.ok,
+    goalState?.ok,
+    router,
+  ]);
 
   const progressPct =
     weeklyHours > 0
@@ -62,6 +94,8 @@ export function ThisWeekCard({
       : 0;
 
   return (
+    <>
+    <Dialog>
     <Card className="shadow-sm ring-1 ring-border/60">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">This week</CardTitle>
@@ -94,6 +128,60 @@ export function ThisWeekCard({
           </div>
         ) : (
           <>
+        <section className="space-y-2 pt-1 border-t border-border/60">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Networking
+            </h3>
+            <DialogTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="min-h-[36px]"
+                aria-label="Log a networking action"
+              >
+                <MessageSquarePlus className="h-4 w-4 mr-2" aria-hidden />
+                Log
+              </Button>
+            </DialogTrigger>
+          </div>
+          <form action={goalFormAction} className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="networking-weekly-goal" className="text-xs text-muted-foreground">
+                Weekly goal (attempts)
+              </Label>
+              <Input
+                id="networking-weekly-goal"
+                type="number"
+                name="networking_weekly_goal"
+                min={0}
+                max={14}
+                defaultValue={networkingGoal}
+                className="w-24 h-9 text-sm"
+                aria-label="Weekly networking goal"
+              />
+            </div>
+            <Button
+              type="submit"
+              size="sm"
+              variant="ghost"
+              disabled={isGoalPending}
+              className="min-h-[44px] touch-manipulation"
+            >
+              {isGoalPending ? "Saving…" : "Save"}
+            </Button>
+          </form>
+          {goalState && !goalState.ok && (
+            <p className="text-sm text-destructive" role="alert">
+              {goalState.error}
+            </p>
+          )}
+        </section>
+        <DialogClose asChild>
+          <button ref={closeRef} type="button" className="hidden" aria-hidden />
+        </DialogClose>
+
         <section className="space-y-2 pt-1 border-t border-border/60">
           <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Quick add</h3>
           <form action={addFormAction} className="flex flex-wrap items-end gap-2">
@@ -230,32 +318,79 @@ export function ThisWeekCard({
           </p>
         )}
 
-        <section className="space-y-2 pt-1 border-t border-border/60">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Week notes</h3>
-          <form action={notesFormAction} className="space-y-2">
-            <input type="hidden" name="week_start" value={weekStart} />
-            <textarea
-              id="week-notes"
-              name="notes"
-              rows={2}
-              defaultValue={initialNotes}
-              placeholder="Reflections, blockers…"
-              maxLength={1001}
-              className="w-full rounded-md border border-input bg-muted/20 px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:opacity-50 resize-y min-h-[60px]"
-            />
-            <Button type="submit" size="sm" disabled={isNotesPending} className="min-h-[44px] touch-manipulation">
-              {isNotesPending ? "Saving…" : "Save notes"}
-            </Button>
-          </form>
-          {notesState && !notesState.ok && (
-            <p className="text-sm text-destructive" role="alert">
-              {notesState.error}
-            </p>
-          )}
-        </section>
           </>
         )}
       </CardContent>
     </Card>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Log a networking action</DialogTitle>
+        <DialogDescription>
+          Optional and measurable. Keep it short and personal.
+        </DialogDescription>
+      </DialogHeader>
+
+      <form action={networkFormAction} className="space-y-4">
+        <div className="grid gap-2">
+          <Label htmlFor="network-action-type-weekly">Action</Label>
+          <select
+            id="network-action-type-weekly"
+            name="action_type"
+            defaultValue={"outreach_sent"}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="outreach_sent">Outreach sent</option>
+            <option value="follow_up_sent">Follow-up sent</option>
+            <option value="comment_left">Comment left</option>
+            <option value="post_published">Post published</option>
+            <option value="coffee_chat_requested">Coffee chat requested</option>
+          </select>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="network-action-date-weekly">Date</Label>
+          <Input
+            id="network-action-date-weekly"
+            type="date"
+            name="action_date"
+            defaultValue={today}
+            required
+            className="h-10"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="network-action-notes-weekly">Note (optional)</Label>
+          <Input
+            id="network-action-notes-weekly"
+            type="text"
+            name="notes"
+            maxLength={140}
+            placeholder="e.g. Asked about stack + interview loop"
+            className="h-10"
+          />
+          <p className="text-xs text-muted-foreground">Max 140 characters.</p>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={isNetworkPending}>
+            {isNetworkPending ? "Saving…" : "Save"}
+          </Button>
+        </DialogFooter>
+
+        {networkState && !networkState.ok && (
+          <p className="text-sm text-destructive" role="alert">
+            {networkState.error}
+          </p>
+        )}
+      </form>
+    </DialogContent>
+    </Dialog>
+    </>
   );
 }

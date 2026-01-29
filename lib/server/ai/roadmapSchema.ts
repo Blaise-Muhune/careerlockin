@@ -7,8 +7,32 @@ import { z } from "zod";
  * No extra keys (enforced via .strict()).
  */
 
-const resourceTypeEnum = z.enum(["docs", "article", "video", "course"]);
-const verificationStatusEnum = z.enum(["verified", "unverified", "fallback"]);
+const resourceTypeEnum = z.enum(["video", "course", "playlist", "certificate"]);
+const verificationStatusEnum = z.enum(["verified", "unverified"]);
+
+const phaseProjectSchema = z
+  .object({
+    title: z.string().min(1),
+    short_description: z.string().min(1),
+    goal: z.string().min(1),
+    deliverables: z.array(z.string().min(1)).min(3).max(5),
+    estimated_time_hours: z.number(),
+    is_optional: z.boolean(),
+  })
+  .strict();
+
+const practiceTypeEnum = z.enum(["project", "challenge"]);
+const practiceDifficultyEnum = z.enum(["easy", "medium", "hard"]);
+const stepPracticeSchema = z
+  .object({
+    type: practiceTypeEnum,
+    title: z.string().min(1),
+    description: z.string().min(1),
+    purpose: z.string().min(1),
+    difficulty: practiceDifficultyEnum,
+    is_optional: z.boolean(),
+  })
+  .strict();
 
 const resourceSchema = z
   .object({
@@ -21,7 +45,6 @@ const resourceSchema = z
     // Structured outputs require all fields to be "required"; to allow absence, use a union with null.
     // The model may emit `null` for these and we'll overwrite them during post-processing.
     verification_status: z.union([verificationStatusEnum, z.null()]),
-    is_fallback: z.union([z.boolean(), z.null()]),
   })
   .strict();
 
@@ -31,7 +54,10 @@ const stepSchema = z
     description: z.string().min(1),
     est_hours: z.number(),
     step_order: z.number().int().positive(),
-    resources: z.array(resourceSchema).min(1).max(2),
+    resources: z.array(resourceSchema).min(0).max(2), // Allow 0 resources if none are valid/grounded
+    // Optional practices: keep this nullable to satisfy Structured Outputs requirements.
+    // Max 0–2 practices; if none, model should output [].
+    practices: z.array(stepPracticeSchema).min(0).max(2),
   })
   .strict();
 
@@ -39,6 +65,8 @@ const phaseSchema = z
   .object({
     phase_title: z.string().min(1),
     phase_order: z.number().int().positive(),
+    // Exactly one meaningful, phase-aligned project.
+    phase_project: phaseProjectSchema,
     steps: z.array(stepSchema).min(4).max(7),
   })
   .strict();
@@ -61,3 +89,5 @@ export type RoadmapJson = z.infer<typeof roadmapJsonSchema>;
 export type RoadmapPhase = RoadmapJson["phases"][number];
 export type RoadmapStep = RoadmapPhase["steps"][number];
 export type RoadmapResource = RoadmapStep["resources"][number];
+export type RoadmapPhaseProject = RoadmapPhase["phase_project"];
+export type RoadmapStepPractice = RoadmapStep["practices"][number];

@@ -51,11 +51,6 @@ export function RecentCheckins({ checkins }: RecentCheckinsProps) {
               <span className="text-muted-foreground">
                 Done: {c.completed_hours != null ? `${c.completed_hours}h` : "—"}
               </span>
-              {c.notes && (
-                <span className="w-full text-muted-foreground truncate" title={c.notes}>
-                  {c.notes}
-                </span>
-              )}
             </li>
           ))}
         </ul>

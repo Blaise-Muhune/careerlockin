@@ -5,8 +5,9 @@
 | Route | Access |
 |-------|--------|
 | `/` | Redirects: no user → `/login`; user, no profile → `/onboarding`; user + profile → `/dashboard`. |
-| `/login` | Public. Email + password sign-in. |
-| `/signup` | Public. Email + password sign-up. |
+| `/login` | Public. Email + password or Google OAuth. |
+| `/signup` | Public. Email + password or Google OAuth. |
+| `/auth/callback` | OAuth callback; exchanges code for session, redirects to `/dashboard`. |
 | `/onboarding` | Requires login. If user has a profile, redirects to `/dashboard`. |
 | `/dashboard` | Requires login and profile. If no profile, redirects to `/onboarding`. |
 
@@ -53,7 +54,21 @@ Same as Supabase setup (see `docs/supabase.md`):
 
 - **Server Actions**  
   - `signUp` / `signIn`: use Supabase server client; redirect after success.  
+  - `signInWithGoogle`: returns OAuth URL; client redirects to Google, then Supabase redirects to `/auth/callback`.  
   - `submitOnboarding`: uses `requireUserForOnboarding()` and upserts `profiles` for the current user (target_role, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference).  
   - `logout`: calls `supabase.auth.signOut()` then redirects to `/login`.
+
+## Google OAuth
+
+1. **Supabase Dashboard**  
+   - Authentication → Providers: enable **Google** and add your Google OAuth Client ID and Client Secret (from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)).  
+   - Authentication → URL Configuration: add your app callback URL to **Redirect URLs**, e.g. `https://yourdomain.com/auth/callback` and `http://localhost:3000/auth/callback` for local dev.
+
+2. **Google Cloud Console**  
+   - Authorized JavaScript origins: your site URL (and `http://localhost:3000` for dev).  
+   - Authorized redirect URIs: use the Supabase callback shown in the Dashboard (e.g. `https://<project-ref>.supabase.co/auth/v1/callback`).
+
+3. **Flow**  
+   - User clicks “Continue with Google” on `/login` or `/signup` → server action returns Supabase OAuth URL → client redirects to Google → after consent, Supabase redirects to `/auth/callback?code=...` → route handler exchanges code for session and redirects to `/dashboard`. New users without a profile are sent to `/onboarding` by the dashboard layout.
 
 Session refresh is handled in **Next.js middleware** (`middleware.ts`), which delegates to `@/lib/supabase/middleware.updateSession` so cookies stay in sync for server-rendered pages and Server Actions.

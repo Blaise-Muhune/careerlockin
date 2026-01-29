@@ -24,18 +24,39 @@ The model must output **only** a single JSON object matching this structure (no 
     {
       "phase_title": "<string>",
       "phase_order": <positive int>,
+      "phase_project": {
+        "title": "<string>",
+        "short_description": "<string (1–2 lines)>",
+        "goal": "<string (what this prepares you for)>",
+        "deliverables": ["<string>", "<string>", "<string>"],
+        "estimated_time_hours": <number>,
+        "is_optional": false
+      },
       "steps": [
         {
           "title": "<string>",
           "description": "<string>",
           "est_hours": <number>,
           "step_order": <positive int>,
+          "practices": [
+            {
+              "type": "project" | "challenge",
+              "title": "<string>",
+              "description": "<string (1 line)>",
+              "purpose": "<string (why this matters)>",
+              "difficulty": "easy" | "medium" | "hard",
+              "is_optional": true
+            }
+          ],
           "resources": [
             {
               "title": "<string>",
               "url": "<string>",
-              "resource_type": "<string>",
-              "is_free": <boolean>
+              "publisher": "<string>",
+              "resource_type": "docs" | "article" | "video" | "course",
+              "is_free": <boolean>,
+              "source_id": "<string>",
+              "verification_status": "verified" | "unverified" | "fallback"
             }
           ]
         }
@@ -50,24 +71,40 @@ The model must output **only** a single JSON object matching this structure (no 
 - **3 to 5 phases** (`phases.length`).
 - **4 to 7 steps per phase** (`steps.length` in each phase).
 - **1 to 2 resources per step** (`resources.length` in each step).
+- **Exactly 1 phase project per phase** (`phase_project`).
+- **0 to 2 optional practices per step** (`practices.length`).
 - `est_hours` must be a number (can be decimal).
 - No extra keys; schema is strict (Zod `.strict()`). Unknown keys cause validation to fail.
 
 The schema is implemented in `lib/server/ai/roadmapSchema.ts`.
 
-### Approved resource domains and validation
+### Resource grounding and URL validation (no fake links)
 
-Resource URLs must come from **approved domains** so links are trustworthy and non-fake.
+Roadmap resources are grounded with web search so the model cannot invent links:
 
-- **Approved domains list:** `lib/server/resources/approvedSources.ts` exports `APPROVED_RESOURCE_DOMAINS`. Allowed hosts (and their subdomains) include:
-  - `developer.mozilla.org`, `docs.python.org`, `react.dev`, `nextjs.org`, `supabase.com`, `stripe.com`, `freecodecamp.org`, `web.dev`, `learn.microsoft.com`, `typescriptlang.org`, `github.com`
-- **Prompt rule:** The system prompt in `app/actions/generateRoadmap.ts` instructs the model that `resources[].url` MUST be an `https` URL whose host is one of these domains. If unsure, prefer MDN or official docs; do not invent or guess URLs.
-- **Server-side validation:** Before saving, `createRoadmapFromJson` (in `lib/server/db/roadmaps.ts`) calls `validateResourceUrl` for each resource URL:
-  - **Valid:** `https`, domain in approved list, not a shortener → stored as given.
-  - **Invalid:** wrong scheme, wrong domain, or shortener → replaced with a **safe fallback** based on step topic (e.g. HTML/CSS/JS → MDN, React → react.dev/learn, Next.js → nextjs.org/docs, TypeScript → typescriptlang.org/docs; default MDN). See `lib/server/resources/fallbacks.ts`.
-  - **Unknown:** domain approved but lightweight fetch failed (e.g. 403, network error) → URL is kept; `resource_type` is set to `"unverified"`. The UI shows a small “Verify later” badge for these so users know the link was not re-checked at save time.
-- **URL validator:** `lib/server/resources/validateResourceUrl.ts` checks: valid `https` URL, host in approved list, rejection of known shortener domains. Optionally performs a lightweight HEAD (or GET with Range) to probe reachability; network/403 is treated as “unknown”, not auto-fail.
-- During roadmap generation, validation uses `skipFetch: true` so only domain/scheme/shortener checks run, keeping save latency low.
+- **Grounding**: `generateRoadmap` uses the OpenAI Responses API with `web_search` and requests `web_search_call.action.sources`. Every resource must include `source_id` that matches the web-search sources, and the server enforces that `resource.url` exactly matches the selected source URL.
+- **URL validation**: The server validates URLs (https + not a shortener) and optionally probes reachability (HEAD then GET). If invalid/unavailable, a safe fallback is substituted and `verification_status` is set to `"fallback"`.
+
+This keeps the UX premium while preventing hallucinated or broken links.
+
+### Why projects exist (premium, job-aligned)
+
+Each phase includes exactly one **phase project** designed to simulate a real job task:
+
+- Fewer, better projects (no filler)
+- Phase-aligned (matches the skills taught in the phase)
+- Written in professional language (“Build”, “Design”, “Implement”, “Simulate”)
+
+These projects help users produce real portfolio artifacts and practice work-like delivery.
+
+### Optional challenges philosophy
+
+Steps can include 0–2 optional practices:
+
+- **Project**: a small, optional implementation task that reinforces the step
+- **Challenge**: optional interview practice (only when goal is job/internship and role is software engineering)
+
+Challenges are never mandatory and are capped across the roadmap to avoid intimidation.
 
 ### Timeframe estimates
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Lock } from "lucide-react";
 import { StepRow } from "./step-row";
 import { StepDetailModal } from "./step-detail-modal";
 import { LockBanner } from "./lock-banner";
@@ -37,6 +38,15 @@ type RoadmapContentProps = {
   canUseTracking: boolean;
   hasRoadmapUnlock?: boolean;
   isPro?: boolean;
+  networkingByPhaseIndex: Array<{
+    focus_sentence: string;
+    message_outlines: Array<{
+      purpose: "ask_for_advice" | "ask_for_referral" | "request_coffee_chat";
+      subject_line: string;
+      outline_points: string[];
+      personalization_required_note: string;
+    }>;
+  }>;
 };
 
 export function RoadmapContent({
@@ -50,6 +60,7 @@ export function RoadmapContent({
   canUseTracking,
   hasRoadmapUnlock = false,
   isPro = false,
+  networkingByPhaseIndex,
 }: RoadmapContentProps) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
@@ -93,11 +104,35 @@ export function RoadmapContent({
   const canUseTrackingInSelectedPhase =
     selectedPhaseIndex === 0 || canUseTracking;
 
+  const selectedNetworking =
+    selectedPhaseIndex >= 0 ? networkingByPhaseIndex[selectedPhaseIndex] : null;
+
   const planLabel = isPro
     ? "Pro"
     : hasRoadmapUnlock
       ? "Full roadmap"
       : null;
+
+  // Free users: only Phase 1 can be expanded; other phases stay locked
+  const firstPhaseValue = phases.length > 0 ? phases[0]!.phase : "";
+  const [openPhases, setOpenPhases] = useState<string[]>(
+    firstPhaseValue ? [firstPhaseValue] : []
+  );
+  const handleAccordionChange = useCallback(
+    (value: string[]) => {
+      if (canViewFullRoadmap) {
+        setOpenPhases(value);
+        return;
+      }
+      // Free: only allow Phase 1 to be open
+      setOpenPhases(value.filter((v) => v === firstPhaseValue));
+    },
+    [canViewFullRoadmap, firstPhaseValue]
+  );
+
+  const scrollToPricing = useCallback(() => {
+    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
   return (
     <>
@@ -107,7 +142,26 @@ export function RoadmapContent({
           You have <span className="font-medium text-foreground">{planLabel}</span> — {isPro ? "track in all phases, time logs, and insights." : "all phases and steps are visible."}
         </p>
       )}
-      <Accordion type="multiple" defaultValue={[]} className="w-full">
+      {phases.length === 0 ? (
+        <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-6 text-sm text-muted-foreground">
+          <p className="mb-2">
+            This roadmap doesn&apos;t have any steps yet.
+          </p>
+          <p>
+            You can go back to the{" "}
+            <a href="/dashboard" className="text-primary underline-offset-4 hover:underline">
+              dashboard
+            </a>{" "}
+            and create a new roadmap if something went wrong while saving.
+          </p>
+        </div>
+      ) : (
+      <Accordion
+        type="multiple"
+        value={openPhases}
+        onValueChange={handleAccordionChange}
+        className="w-full"
+      >
         {phases.map(({ phase, phaseOrder, steps }, phaseIndex) => {
           const isLocked = !canViewFullRoadmap && phaseIndex > 0;
           const est = phaseMap[phase] ?? { hours: 0, weeks: 0 };
@@ -117,13 +171,17 @@ export function RoadmapContent({
           const total = steps.length;
           return (
             <AccordionItem key={phase} value={phase}>
-              <AccordionTrigger className="hover:no-underline data-[state=open]:border-b data-[state=open]:pb-4">
+              <AccordionTrigger
+                className="hover:no-underline data-[state=open]:border-b data-[state=open]:pb-4"
+                onClick={isLocked ? scrollToPricing : undefined}
+              >
                 <div className="flex flex-col items-start gap-1.5 text-left w-full pr-2">
                   <span className="font-semibold">
                     Phase {phaseOrder}: {phase}
                     {isLocked && (
-                      <span className="ml-2 text-muted-foreground font-normal text-xs">
-                        (locked)
+                      <span className="ml-2 inline-flex items-center gap-1 text-muted-foreground font-normal text-xs">
+                        <Lock className="size-3.5 shrink-0" aria-hidden />
+                        Unlock to view
                       </span>
                     )}
                     {!isLocked && total > 0 && completed === total && (
@@ -179,7 +237,7 @@ export function RoadmapContent({
           );
         })}
       </Accordion>
-
+      )}
       <StepDetailModal
         step={selectedStep}
         isDone={selectedIsDone}
@@ -187,6 +245,8 @@ export function RoadmapContent({
         currentStatus={selectedIsCurrent ? currentStatus : null}
         roadmapId={roadmapId}
         phaseTitle={selectedPhaseTitle}
+        networkingFocus={selectedNetworking?.focus_sentence ?? null}
+        messageOutlines={selectedNetworking?.message_outlines ?? []}
         open={selectedStepId !== null}
         onOpenChange={(o) => !o && setSelectedStepId(null)}
         canUseTracking={canUseTrackingInSelectedPhase}

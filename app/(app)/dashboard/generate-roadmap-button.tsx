@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { generateRoadmap } from "@/app/actions/generateRoadmap";
@@ -9,6 +9,12 @@ export function GenerateRoadmapButton() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && error) {
+      console.error("[generateRoadmap] error:", error);
+    }
+  }, [error]);
 
   function handleGenerate() {
     setError(null);

@@ -16,6 +16,8 @@ import {
 import { getEntitlements } from "@/lib/server/billing/entitlements";
 import { ShareProgressButton } from "@/components/share/ShareProgressButton";
 import { RoadmapContent } from "./roadmap-content";
+import { getProfileNetworkingSettings } from "@/lib/server/db/networking";
+import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
 
 function formatWeeks(w: number): string {
   if (w < 0.1 && w > 0) return "< 0.1 weeks";
@@ -84,6 +86,21 @@ export default async function RoadmapPage() {
       ? `${roadmap.target_role} · ${formatWeeks(totalWeeks)} total (${weeklyHours}h/week)`
       : roadmap.target_role;
 
+  const networkingSettings = await getProfileNetworkingSettings(userId);
+  const networkingByPhaseIndex = phases.map((p, idx) => {
+    const g = getNetworkingGuidance({
+      profile: networkingSettings,
+      targetRole: roadmap.target_role,
+      currentPhaseIndex: idx,
+      currentPhaseTitle: p.phase,
+      currentStepTitle: p.steps[0]?.title ?? null,
+    });
+    return {
+      focus_sentence: g.weekly_focus_description,
+      message_outlines: entitlements.isPro ? g.message_outlines : g.message_outlines.slice(0, 1),
+    };
+  });
+
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -108,6 +125,7 @@ export default async function RoadmapPage() {
         canUseTracking={entitlements.canUseTracking}
         hasRoadmapUnlock={entitlements.hasRoadmapUnlock}
         isPro={entitlements.isPro}
+        networkingByPhaseIndex={networkingByPhaseIndex}
       />
     </div>
   );

@@ -57,7 +57,7 @@ User is identified via `client_reference_id` and `metadata.user_id` on the Check
 - **hasRoadmapUnlock**: at least one `purchases` row with `product_key = 'roadmap_unlock'` and `status = 'paid'`.
 - **isPro**: at least one `subscriptions` row with `status` in `active` or `trialing`.
 - **canViewFullRoadmap** = `hasRoadmapUnlock || isPro`. If false, only Phase 1 is fully visible; other phases show titles but content is locked.
-- **canUseTracking** = `isPro`. Step completion and current-work are allowed for Phase 1 for all tiers; phases 2+ require Pro. Time logs and week notes require Pro.
+- **canUseTracking** = `isPro`. Step completion and current-work are allowed for Phase 1 for all tiers; phases 2+ require Pro. Time logs require Pro (notes are per time log).
 - **canSeeCharts** = `isPro`. Weekly trend and phase completion charts require Pro.
 - **canGenerateExtraRoadmaps** = `isPro`. Free and one-time unlock: 1 roadmap; Pro: unlimited.
 

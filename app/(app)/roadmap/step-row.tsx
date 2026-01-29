@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight, Link2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { RoadmapWithSteps } from "@/lib/server/db/roadmaps";
 import type { CurrentWorkStatus } from "@/lib/server/db/currentWork";
@@ -48,10 +49,14 @@ export function StepRow({
         }
       }}
       className={cn(
-        "rounded-lg p-4 min-h-[44px] flex flex-col gap-2 transition-colors cursor-pointer text-left touch-manipulation active:bg-muted/60",
-        isDone ? "bg-muted/50" : "bg-muted/30",
-        isCurrentStep && "border-l-4 border-primary pl-3",
-        isCurrentStep && !currentStatus && "ring-2 ring-primary/50"
+        "group rounded-xl border p-4 min-h-[52px] flex flex-col gap-2 transition-all cursor-pointer text-left touch-manipulation",
+        "hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
+        "active:scale-[0.995] active:bg-primary/10",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+        isDone && "border-border bg-muted/40",
+        !isDone && "border-border/80 bg-card",
+        isCurrentStep && "border-l-4 border-l-primary pl-4 border-primary/30",
+        isCurrentStep && !currentStatus && "ring-2 ring-primary/30"
       )}
     >
       <div className="flex items-start gap-3">
@@ -64,10 +69,19 @@ export function StepRow({
         />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">{step.title}</span>
+            <span className="font-semibold text-foreground">{step.title}</span>
             {step.est_hours != null && (
               <span className="text-muted-foreground text-sm">
                 ~{step.est_hours}h
+              </span>
+            )}
+            {step.resources.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md bg-muted/80 px-1.5 py-0.5 text-muted-foreground"
+                title={`${step.resources.length} resource${step.resources.length === 1 ? "" : "s"} — tap for details`}
+              >
+                <Link2 className="size-3.5 shrink-0" aria-hidden />
+                <span className="text-xs font-medium">{step.resources.length}</span>
               </span>
             )}
             {showStatusBadge && (
@@ -90,37 +104,15 @@ export function StepRow({
             </p>
           )}
         </div>
+        <ChevronRight
+          className="shrink-0 mt-1 size-5 text-muted-foreground/70 group-hover:text-primary transition-colors"
+          aria-hidden
+        />
       </div>
-      {!isLocked && step.resources.length > 0 && (
-        <ul className="flex flex-col gap-1 mt-1 ml-7">
-          {step.resources.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {r.title}
-                <span aria-hidden>↗</span>
-              </a>
-              {r.resource_type === "unverified" ? (
-                <span className="text-muted-foreground text-xs" title="Link not yet verified">
-                  Verify later
-                </span>
-              ) : (
-                r.resource_type && (
-                  <span className="text-muted-foreground text-xs">
-                    ({r.resource_type})
-                  </span>
-                )
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {isLocked && (
+      <p className="text-xs text-muted-foreground ml-7 -mt-0.5">
+        Tap for details
+      </p>
+      {isLocked && step.resources.length > 0 && (
         <p className="text-xs text-muted-foreground mt-1 ml-7">
           Resources are locked in this preview.
         </p>

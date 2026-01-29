@@ -28,7 +28,7 @@ All writes use the **server session user id** from `requireUserAndProfile()`; th
 
 ## Weekly check-ins and time tracking
 
-- **weekly_checkins** is used for **week notes** and an optional **completed_hours snapshot** when the user saves notes. The app no longer relies on `planned_hours`; the column may remain in the DB for legacy data.
+- **weekly_checkins** holds past weekly snapshots (completed_hours, notes) for “Recent check-ins”. Notes are per time log; there is no separate week-notes flow. The app no longer relies on `planned_hours`; the column may remain in the DB for legacy data.
 - **Planned hours** come from the user’s profile: `profiles.weekly_hours` (set at onboarding).
 - **Completed hours** for the current week are computed from **time_logs** (daily logs); see `docs/time-tracking.md` for the full model.
 
@@ -37,5 +37,4 @@ All writes use the **server session user id** from `requireUserAndProfile()`; th
 | Step belongs to user’s roadmap | `setStepDone()` in `lib/server/db/progress.ts`. |
 | Progress writes use session user | `toggleStep` action → `requireUserAndProfile()` then `setStepDone(userId, …)`. |
 | Check-in / notes uniqueness | Supabase upsert with `onConflict: "user_id,week_start"` in `upsertWeeklyCheckin()`. |
-| Check-in / notes writes use session user | `saveWeeklyNotesAction` → `requireUserAndProfile()` then `upsertWeeklyCheckin(userId, week_start, completedHours, notes)`. |
 | Time log writes use session user | `addTimeLogAction`, `editTimeLogAction`, `deleteTimeLogAction` → `requireUserAndProfile()` then DB helpers. |
