@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { RoadmapGeneratingOverlay } from "@/components/loading/RoadmapGeneratingOverlay";
 import { generateRoadmap } from "@/app/actions/generateRoadmap";
 
 export function GenerateRoadmapButton() {
@@ -30,15 +31,18 @@ export function GenerateRoadmapButton() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button onClick={handleGenerate} disabled={isPending}>
-        {isPending ? "Creating…" : "Create my roadmap"}
-      </Button>
-      {error && (
-        <p className="text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
+    <>
+      {isPending && <RoadmapGeneratingOverlay />}
+      <div className="flex flex-col gap-2">
+        <Button onClick={handleGenerate} disabled={isPending}>
+          {isPending ? "Creating…" : "Create my roadmap"}
+        </Button>
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </>
   );
 }

@@ -3,6 +3,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 /**
+ * Returns whether the user has admin access. Use for conditional UI (e.g. nav link).
+ */
+export async function getIsAdmin(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.is_admin === true;
+}
+
+/**
  * Admin access: database flag only.
  * Set profiles.is_admin = true via Supabase SQL or service role. No UI to change it.
  *

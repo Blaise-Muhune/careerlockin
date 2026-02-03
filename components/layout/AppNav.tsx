@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogHeader,
 } from "@/components/ui/dialog";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -25,7 +25,11 @@ function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export function AppNav() {
+type AppNavProps = {
+  isAdmin?: boolean;
+};
+
+export function AppNav({ isAdmin = false }: AppNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -51,6 +55,24 @@ export function AppNav() {
             </Button>
           );
         })}
+        {isAdmin && (
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "min-h-[44px] min-w-[44px] sm:min-w-0 sm:px-3 rounded-lg",
+              isActivePath(pathname, "/admin")
+                ? "bg-accent text-foreground font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            )}
+          >
+            <Link href="/admin">
+              <Shield className="size-4 sm:mr-2" aria-hidden />
+              <span className="hidden sm:inline">Admin</span>
+            </Link>
+          </Button>
+        )}
         <ThemeToggle />
         <form action={logout} className="inline-flex">
           <Button
@@ -114,6 +136,21 @@ export function AppNav() {
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMenuOpen(false)}
+                className={cn(
+                  "flex min-h-[48px] items-center gap-2 px-4 rounded-lg font-medium transition-colors touch-manipulation",
+                  isActivePath(pathname, "/admin")
+                    ? "bg-accent text-foreground"
+                    : "text-foreground hover:bg-accent/50 active:bg-accent"
+                )}
+              >
+                <Shield className="size-4" aria-hidden />
+                Admin
+              </Link>
+            )}
             <div className="flex min-h-[48px] items-center px-4">
               <ThemeToggle />
             </div>

@@ -4,9 +4,10 @@ import { OfflineBanner } from "@/components/pwa/OfflineBanner";
 
 type AppShellProps = {
   children: React.ReactNode;
+  isAdmin?: boolean;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, isAdmin = false }: AppShellProps) {
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col bg-background">
       <OfflineBanner />
@@ -18,7 +19,7 @@ export function AppShell({ children }: AppShellProps) {
           >
             CareerLockin
           </Link>
-          <AppNav />
+          <AppNav isAdmin={isAdmin} />
         </div>
       </header>
       <main className="flex-1 mx-auto w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 py-6 sm:px-6 sm:py-10 overflow-x-hidden min-w-0">
