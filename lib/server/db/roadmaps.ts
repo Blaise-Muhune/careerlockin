@@ -7,6 +7,7 @@ export type RoadmapWithSteps = {
   target_role: string;
   model: string | null;
   created_at: string;
+  regeneration_count?: number;
   steps: Array<{
     id: string;
     phase: string;
@@ -26,6 +27,79 @@ export type RoadmapWithSteps = {
   }>;
 };
 
+const ROADMAP_SELECT = "id, target_role, model, created_at, regeneration_count";
+
+/**
+ * Returns all roadmaps for the user, newest first.
+ */
+export async function listRoadmapsForUser(
+  userId: string
+): Promise<Array<{ id: string; target_role: string; created_at: string }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("roadmaps")
+    .select("id, target_role, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    target_role: r.target_role,
+    created_at: r.created_at,
+  }));
+}
+
+/**
+ * Returns a roadmap by id if it belongs to the user, or null.
+ */
+export async function getRoadmapById(
+  userId: string,
+  roadmapId: string
+): Promise<RoadmapWithSteps | null> {
+  const supabase = await createClient();
+
+  const { data: roadmap, error: roadmapError } = await supabase
+    .from("roadmaps")
+    .select(ROADMAP_SELECT)
+    .eq("user_id", userId)
+    .eq("id", roadmapId)
+    .maybeSingle();
+
+  if (roadmapError || !roadmap) return null;
+
+  const { data: steps, error: stepsError } = await supabase
+    .from("roadmap_steps")
+    .select("id, phase, title, description, est_hours, step_order, phase_project, practices")
+    .eq("roadmap_id", roadmap.id)
+    .order("step_order", { ascending: true });
+
+  if (stepsError || !steps?.length) {
+    return { ...roadmap, steps: [] };
+  }
+
+  const { data: resources } = await supabase
+    .from("resources")
+    .select("id, step_id, title, url, resource_type, is_free")
+    .in("step_id", steps.map((s) => s.id));
+
+  const stepsWithResources = steps.map((step) => ({
+    ...step,
+    est_hours: step.est_hours != null ? Number(step.est_hours) : null,
+    resources: (resources ?? [])
+      .filter((r) => r.step_id === step.id)
+      .map((r) => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        resource_type: r.resource_type,
+        is_free: r.is_free ?? true,
+      })),
+  }));
+
+  return { ...roadmap, steps: stepsWithResources };
+}
+
 /**
  * Returns the latest roadmap for the user (by updated_at), or null.
  * Steps are ordered by step_order; resources are included per step.
@@ -37,7 +111,7 @@ export async function getLatestRoadmapForUser(
 
   const { data: roadmap, error: roadmapError } = await supabase
     .from("roadmaps")
-    .select("id, target_role, model, created_at")
+    .select(ROADMAP_SELECT)
     .eq("user_id", userId)
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -161,6 +235,118 @@ export async function createRoadmapFromJson(
   }
 
   return roadmapId;
+}
+
+/**
+ * Replaces an existing roadmap's steps and resources with new content from JSON.
+ * Deletes existing steps (cascade deletes resources and progress), updates target_role,
+ * inserts new steps, and increments regeneration_count.
+ */
+export async function replaceRoadmapFromJson(
+  userId: string,
+  roadmapId: string,
+  parsed: RoadmapJson,
+  modelName: string
+): Promise<void> {
+  const supabase = await createClient();
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("roadmaps")
+    .select("id, user_id, regeneration_count")
+    .eq("id", roadmapId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError || !existing) {
+    throw new Error("Roadmap not found or access denied.");
+  }
+
+  const regCount = (existing.regeneration_count as number) ?? 0;
+  if (regCount >= 1) {
+    throw new Error("You have already used your 1 regeneration for this roadmap.");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("roadmap_steps")
+    .delete()
+    .eq("roadmap_id", roadmapId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  const { error: updateError } = await supabase
+    .from("roadmaps")
+    .update({
+      target_role: parsed.target_role,
+      model: modelName,
+      regeneration_count: regCount + 1,
+    })
+    .eq("id", roadmapId)
+    .eq("user_id", userId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  for (const phase of parsed.phases) {
+    for (let idx = 0; idx < phase.steps.length; idx++) {
+      const step = phase.steps[idx]!;
+      const { data: stepRow, error: stepError } = await supabase
+        .from("roadmap_steps")
+        .insert({
+          roadmap_id: roadmapId,
+          phase: phase.phase_title,
+          title: step.title,
+          description: step.description,
+          est_hours: step.est_hours,
+          step_order: step.step_order,
+          phase_project: idx === 0 ? phase.phase_project : null,
+          practices: step.practices ?? [],
+        })
+        .select("id")
+        .single();
+
+      if (stepError || !stepRow) {
+        throw new Error(stepError?.message ?? "Failed to create step");
+      }
+
+      if (step.resources.length > 0) {
+        const rows = step.resources.map((r) => ({
+          step_id: stepRow.id,
+          title: r.title,
+          url: r.url,
+          resource_type: r.resource_type,
+          is_free: r.is_free,
+          source_id: r.source_id || null,
+          verification_status: r.verification_status ?? null,
+        }));
+        const { error: resError } = await supabase.from("resources").insert(rows);
+        if (resError) {
+          throw new Error(resError.message);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Returns regeneration_count for a roadmap if it belongs to the user.
+ */
+export async function getRoadmapRegenerationCount(
+  userId: string,
+  roadmapId: string
+): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("roadmaps")
+    .select("regeneration_count")
+    .eq("id", roadmapId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return (data.regeneration_count as number) ?? 0;
 }
 
 /**

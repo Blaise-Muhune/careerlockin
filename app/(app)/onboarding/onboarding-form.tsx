@@ -44,6 +44,7 @@ const learningPreferences = [
 const onboardingFormSchema = z.object({
   full_name: z.string().max(200).optional(),
   target_role: z.string().min(1, "Target role is required").max(200),
+  target_role_job_description: z.string().max(2000).optional().or(z.literal("")),
   weekly_hours: z
     .number()
     .int("Must be a whole number")
@@ -74,6 +75,7 @@ export function OnboardingForm() {
     defaultValues: {
       full_name: "",
       target_role: "",
+      target_role_job_description: "",
       weekly_hours: 10,
       current_level: undefined,
       goal_intent: "skill_upgrade",
@@ -127,6 +129,21 @@ export function OnboardingForm() {
                 {errors.target_role?.message ?? state?.fieldErrors?.target_role}
               </p>
             )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="target_role_job_description">Job description (optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Paste a job posting or describe the role. This helps us tailor the roadmap to real requirements.
+            </p>
+            <textarea
+              id="target_role_job_description"
+              rows={4}
+              placeholder="e.g. Paste key requirements from a job posting, or describe the type of work you want to do…"
+              maxLength={2000}
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 resize-y min-h-[100px]"
+              aria-invalid={Boolean(errors.target_role_job_description ?? state?.fieldErrors?.target_role_job_description)}
+              {...register("target_role_job_description")}
+            />
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Goal</span>

@@ -9,7 +9,7 @@ import { logError } from "@/lib/server/logging";
 import { getEntitlements } from "@/lib/server/billing/entitlements";
 import { createClient } from "@/lib/supabase/server";
 import { roadmapJsonSchema, type RoadmapJson, type RoadmapResource } from "@/lib/server/ai/roadmapSchema";
-import { createRoadmapFromJson } from "@/lib/server/db/roadmaps";
+import { createRoadmapFromJson, replaceRoadmapFromJson, getRoadmapRegenerationCount } from "@/lib/server/db/roadmaps";
 import { validateUrl, verifyUrlReachable } from "@/lib/server/resources/validateUrl";
 
 const profileInputSchema = z.object({
@@ -21,6 +21,7 @@ const profileInputSchema = z.object({
   target_timeline_weeks: z.number().int().optional().nullable(),
   prior_exposure: z.array(z.string()).optional().nullable(),
   learning_preference: z.string().optional().nullable(),
+  target_role_job_description: z.string().max(2000).optional().nullable(),
 });
 
 export type GenerateRoadmapState =
@@ -108,6 +109,7 @@ function buildUserPrompt(params: {
   target_timeline_weeks: number | null | undefined;
   prior_exposure: string[] | null | undefined;
   learning_preference: string | null | undefined;
+  target_role_job_description: string | null | undefined;
 }): string {
   const lines: string[] = [
     "IMPORTANT: You MUST use the web_search tool FIRST to find real learning resources before generating the roadmap. Search for courses, tutorials, documentation, YouTube playlists, certificates, and articles that are current, job-relevant, and genuinely valuable for the target role.",
@@ -116,6 +118,9 @@ function buildUserPrompt(params: {
     "3) Attach 1–2 resources per step, using ONLY real URLs from the web_search results (copy-paste them exactly from the sources). If you cannot find good resources, use fewer or none—never invent URLs. Every resource must come from web_search sources.",
     "",
     `Target role: ${params.target_role}`,
+    ...(params.target_role_job_description?.trim()
+      ? [`Job description / requirements (use to tailor the roadmap):\n${params.target_role_job_description.trim()}`]
+      : []),
     `Weekly hours available: ${params.weekly_hours}`,
     `Current level: ${params.current_level}`,
     `Time horizon (weeks): ${params.time_horizon_weeks}`,
@@ -273,8 +278,45 @@ async function validateResourcesReachable(parsed: RoadmapJson): Promise<RoadmapJ
   return { ...parsed, phases };
 }
 
+const PRO_ROADMAP_LIMIT = 5;
+
+function parseFormDataToInput(formData: FormData | null) {
+  if (!formData) return null;
+  const target_role = formData.get("target_role");
+  const weekly_hours = formData.get("weekly_hours");
+  const current_level = formData.get("current_level");
+  const goal_intent = formData.get("goal_intent");
+  const target_timeline_weeks = formData.get("target_timeline_weeks");
+  const prior_exposure = formData.getAll("prior_exposure");
+  const learning_preference = formData.get("learning_preference");
+  const target_role_job_description = formData.get("target_role_job_description");
+  if (typeof target_role !== "string" || target_role.trim() === "") return null;
+  if (weekly_hours === null || weekly_hours === undefined) return null;
+  return {
+    target_role: target_role.trim(),
+    weekly_hours: Number(weekly_hours),
+    current_level: typeof current_level === "string" ? current_level : "beginner",
+    goal_intent: typeof goal_intent === "string" ? goal_intent : "skill_upgrade",
+    target_timeline_weeks:
+      target_timeline_weeks && typeof target_timeline_weeks === "string"
+        ? Number(target_timeline_weeks) || null
+        : null,
+    prior_exposure: Array.isArray(prior_exposure)
+      ? (prior_exposure as string[]).filter(Boolean)
+      : null,
+    learning_preference:
+      typeof learning_preference === "string" && learning_preference.trim()
+        ? learning_preference.trim()
+        : null,
+    target_role_job_description:
+      typeof target_role_job_description === "string" && target_role_job_description.trim()
+        ? target_role_job_description.trim()
+        : null,
+  };
+}
+
 export async function generateRoadmap(
-  timeHorizonWeeksOverride?: number
+  formData?: FormData | null
 ): Promise<GenerateRoadmapState> {
   const { userId } = await requireUserAndProfile();
 
@@ -284,47 +326,75 @@ export async function generateRoadmap(
       createClient(),
     ]);
 
-    if (!entitlements.canGenerateExtraRoadmaps) {
-      const { count } = await supabase
-        .from("roadmaps")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-      if ((count ?? 0) >= 1) {
+    const { count } = await supabase
+      .from("roadmaps")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    const roadmapCount = count ?? 0;
+
+    if (entitlements.canGenerateExtraRoadmaps) {
+      if (roadmapCount >= PRO_ROADMAP_LIMIT) {
         return {
           ok: false,
-          error: "Upgrade to Pro to generate more than one roadmap.",
+          error: `Pro users can have up to ${PRO_ROADMAP_LIMIT} roadmaps. Delete one to create a new one.`,
+        };
+      }
+    } else {
+      if (roadmapCount >= 1) {
+        return {
+          ok: false,
+          error: "Upgrade to Pro to create more than one roadmap (up to 5).",
         };
       }
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select(
-        "target_role, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference"
-      )
-      .eq("user_id", userId)
-      .single();
+    const customInput = parseFormDataToInput(formData ?? null);
 
-    if (profileError || !profile) {
-      return { ok: false, error: "Profile not found. Complete onboarding first." };
+    let input: { success: true; data: z.infer<typeof profileInputSchema> } | { success: false };
+
+    if (customInput) {
+      input = profileInputSchema.safeParse({
+        target_role: customInput.target_role,
+        weekly_hours: customInput.weekly_hours,
+        current_level: customInput.current_level,
+        time_horizon_weeks: customInput.target_timeline_weeks ?? 16,
+        goal_intent: customInput.goal_intent,
+        target_timeline_weeks: customInput.target_timeline_weeks,
+        prior_exposure: customInput.prior_exposure,
+        learning_preference: customInput.learning_preference,
+        target_role_job_description: customInput.target_role_job_description,
+      });
+    } else {
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select(
+          "target_role, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference, target_role_job_description"
+        )
+        .eq("user_id", userId)
+        .single();
+
+      if (profileError || !profile) {
+        return { ok: false, error: "Profile not found. Complete onboarding first." };
+      }
+
+      input = profileInputSchema.safeParse({
+        target_role: profile.target_role,
+        weekly_hours: profile.weekly_hours,
+        current_level: profile.current_level ?? "beginner",
+        time_horizon_weeks: profile.target_timeline_weeks ?? 16,
+        goal_intent: profile.goal_intent ?? "skill_upgrade",
+        target_timeline_weeks: profile.target_timeline_weeks ?? null,
+        prior_exposure: profile.prior_exposure ?? null,
+        learning_preference: profile.learning_preference ?? null,
+        target_role_job_description: profile.target_role_job_description ?? null,
+      });
     }
-
-    const input = profileInputSchema.safeParse({
-      target_role: profile.target_role,
-      weekly_hours: profile.weekly_hours,
-      current_level: profile.current_level ?? "beginner",
-      time_horizon_weeks:
-        timeHorizonWeeksOverride ?? (profile.target_timeline_weeks ?? 16),
-      goal_intent: profile.goal_intent ?? "skill_upgrade",
-      target_timeline_weeks: profile.target_timeline_weeks ?? null,
-      prior_exposure: profile.prior_exposure ?? null,
-      learning_preference: profile.learning_preference ?? null,
-    });
 
     if (!input.success) {
       return {
         ok: false,
-        error: "Invalid profile data. Check target role and weekly hours.",
+        error: "Invalid input. Check target role and weekly hours.",
       };
     }
 
@@ -339,6 +409,7 @@ export async function generateRoadmap(
       target_timeline_weeks: input.data.target_timeline_weeks ?? null,
       prior_exposure: input.data.prior_exposure ?? null,
       learning_preference: input.data.learning_preference ?? null,
+      target_role_job_description: input.data.target_role_job_description ?? null,
     });
     // Use gpt-4o-mini which has better token limits and JSON handling
     const model = "gpt-4.1-mini";
@@ -513,5 +584,158 @@ export async function generateRoadmap(
       return { ok: false, error: "Roadmap generation model is unavailable. Please try again later." };
     }
     return { ok: false, error: "Could not create your roadmap. Please try again." };
+  }
+}
+
+export type RegenerateRoadmapState = GenerateRoadmapState;
+
+export async function regenerateRoadmap(
+  _prev: RegenerateRoadmapState | null,
+  formData: FormData
+): Promise<RegenerateRoadmapState> {
+  const roadmapId = formData.get("roadmap_id");
+  if (typeof roadmapId !== "string" || !roadmapId.trim()) {
+    return { ok: false, error: "Roadmap ID is required." };
+  }
+  const { userId } = await requireUserAndProfile();
+
+  try {
+    const regCount = await getRoadmapRegenerationCount(userId, roadmapId);
+    if (regCount === null) {
+      return { ok: false, error: "Roadmap not found or access denied." };
+    }
+    if (regCount >= 1) {
+      return { ok: false, error: "You have already used your 1 regeneration for this roadmap." };
+    }
+
+    const customInput = parseFormDataToInput(formData);
+    if (!customInput) {
+      return { ok: false, error: "Invalid input. Provide target role and weekly hours." };
+    }
+
+    const input = profileInputSchema.safeParse({
+      target_role: customInput.target_role,
+      weekly_hours: customInput.weekly_hours,
+      current_level: customInput.current_level,
+      time_horizon_weeks: customInput.target_timeline_weeks ?? 16,
+      goal_intent: customInput.goal_intent,
+      target_timeline_weeks: customInput.target_timeline_weeks,
+      prior_exposure: customInput.prior_exposure,
+      learning_preference: customInput.learning_preference,
+      target_role_job_description: customInput.target_role_job_description,
+    });
+
+    if (!input.success) {
+      return { ok: false, error: "Invalid input. Check target role and weekly hours." };
+    }
+
+    const apiKey = getEnv().OPENAI_API_KEY;
+    if (!apiKey) {
+      return { ok: false, error: "OpenAI is not configured." };
+    }
+
+    const openai = new OpenAI({ apiKey });
+    const userPrompt = buildUserPrompt({
+      ...input.data,
+      target_timeline_weeks: input.data.target_timeline_weeks ?? null,
+      prior_exposure: input.data.prior_exposure ?? null,
+      learning_preference: input.data.learning_preference ?? null,
+      target_role_job_description: input.data.target_role_job_description ?? null,
+    });
+    const model = "gpt-4.1-mini";
+
+    type ParseResponse = Awaited<ReturnType<typeof openai.responses.parse>>;
+    let response: ParseResponse | undefined;
+    let parsed: unknown;
+    const maxRetries = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        response = await openai.responses.parse({
+          model,
+          instructions: SYSTEM_PROMPT,
+          input: userPrompt,
+          tools: [{ type: "web_search" }],
+          tool_choice: "auto",
+          include: ["web_search_call.action.sources"],
+          text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
+          temperature: 0.3,
+          max_output_tokens: 16000,
+        });
+
+        if (response.output_parsed) {
+          parsed = response.output_parsed;
+          break;
+        }
+
+        const rawText = response.output_text?.trim();
+        if (rawText) {
+          const start = rawText.indexOf("{");
+          const end = rawText.lastIndexOf("}");
+          const jsonStr = start >= 0 && end > start ? rawText.slice(start, end + 1) : rawText;
+          if (jsonStr.length < 1000 && !jsonStr.endsWith("}")) {
+            throw new Error(`JSON appears truncated. Retrying...`);
+          }
+          try {
+            parsed = JSON.parse(jsonStr);
+            break;
+          } catch (parseErr) {
+            const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+            if (jsonStr.length < 2000 && parseMsg.includes("position")) {
+              throw new Error(`JSON parse failed - likely truncated. Retrying...`);
+            }
+            throw parseErr;
+          }
+        }
+        throw new Error("No output received");
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        const isTruncated = lastError.message.includes("truncated") || attempt < maxRetries;
+        if (!isTruncated) {
+          void logError("roadmap-regeneration", lastError, { userId, roadmapId });
+          return { ok: false, error: "Could not regenerate roadmap. Try again." };
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+
+    if (!parsed || !response) {
+      return { ok: false, error: "Failed to generate roadmap after retries." };
+    }
+
+    const parseResult = roadmapJsonSchema.safeParse(parsed);
+    if (!parseResult.success) {
+      void logError("roadmap-regeneration", new Error("Schema validation failed"), {
+        userId,
+        roadmapId,
+      });
+      return { ok: false, error: "Roadmap did not match schema. Try again." };
+    }
+
+    const sourcesMap = buildSourcesMap(
+      (response.output ?? []) as Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>
+    );
+
+    let roadmap = normalizeProjectsAndPractices({
+      roadmap: parseResult.data,
+      goalIntent: input.data.goal_intent,
+      targetRole: input.data.target_role,
+    });
+    roadmap = enforceGroundingAndValidation(roadmap, sourcesMap);
+    roadmap = await validateResourcesReachable(roadmap);
+
+    await replaceRoadmapFromJson(userId, roadmapId, roadmap, model);
+    return { ok: true, roadmapId };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    void logError("roadmap-regeneration", err instanceof Error ? err : new Error(msg), {
+      userId,
+      roadmapId,
+    });
+    if (process.env.NODE_ENV !== "production") {
+      return { ok: false, error: `Dev error: ${msg}` };
+    }
+    return { ok: false, error: "Could not regenerate your roadmap. Please try again." };
   }
 }

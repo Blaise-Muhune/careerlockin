@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { UnlockOptions } from "./unlock-options";
+import { CreateNewRoadmapLink } from "./create-new-roadmap-link";
 import { EmailPrefsSection } from "./email-prefs-section";
 import { EmailPrefsProOnly } from "./email-prefs-pro-only";
 import { PurchaseSuccessRevalidate } from "./purchase-success-revalidate";
@@ -99,6 +100,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </CardContent>
         </Card>
       </section>
+      {entitlements.isPro && (
+        <CreateNewRoadmapLink userId={userId} />
+      )}
       {entitlements.isPro && emailPrefs ? (
         <EmailPrefsSection initialPrefs={emailPrefs} />
       ) : (

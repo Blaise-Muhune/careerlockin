@@ -5,11 +5,50 @@ export type ProfileWeeklyHours = {
   weekly_hours: number;
 };
 
+export type ProfileForRoadmapEdit = {
+  target_role: string;
+  target_role_job_description: string | null;
+  weekly_hours: number;
+  current_level: string | null;
+  goal_intent: string | null;
+  target_timeline_weeks: number | null;
+  prior_exposure: string[] | null;
+  learning_preference: string | null;
+};
+
 export type EmailPrefs = {
   email_weekly_recap: boolean;
   email_inactivity_nudge: boolean;
   email_milestones: boolean;
 };
+
+/**
+ * Returns profile fields needed to pre-fill the roadmap edit/regenerate form.
+ */
+export async function getProfileForRoadmapEdit(
+  userId: string
+): Promise<ProfileForRoadmapEdit | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "target_role, target_role_job_description, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference"
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    target_role: (data.target_role as string) ?? "",
+    target_role_job_description: (data.target_role_job_description as string | null) ?? null,
+    weekly_hours: (data.weekly_hours as number) ?? 10,
+    current_level: (data.current_level as string | null) ?? null,
+    goal_intent: (data.goal_intent as string | null) ?? null,
+    target_timeline_weeks: (data.target_timeline_weeks as number | null) ?? null,
+    prior_exposure: (data.prior_exposure as string[] | null) ?? null,
+    learning_preference: (data.learning_preference as string | null) ?? null,
+  };
+}
 
 /**
  * Returns the profile's weekly_hours for the given user.

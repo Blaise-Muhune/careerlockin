@@ -13,6 +13,7 @@ const learningPreferences = ["reading", "video", "project_first", "mixed"] as co
 const onboardingSchema = z.object({
   full_name: z.string().max(200).optional().or(z.literal("")),
   target_role: z.string().min(1, "Target role is required").max(200),
+  target_role_job_description: z.string().max(2000).optional().or(z.literal("")),
   weekly_hours: z.coerce
     .number()
     .int("Must be a whole number")
@@ -77,6 +78,7 @@ export async function submitOnboarding(
   const {
     full_name,
     target_role,
+    target_role_job_description,
     weekly_hours,
     current_level,
     goal_intent,
@@ -91,6 +93,7 @@ export async function submitOnboarding(
       user_id: user.id,
       full_name: full_name?.trim() || null,
       target_role: target_role.trim(),
+      target_role_job_description: target_role_job_description?.trim() || null,
       weekly_hours,
       current_level,
       goal_intent,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Map } from "lucide-react";
 
 const STEPS = [
   "Analyzing your profile…",
@@ -31,7 +31,7 @@ export function RoadmapGeneratingOverlay() {
     >
       <div className="flex flex-col items-center gap-8 px-6 max-w-sm w-full">
         <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 ring-2 ring-primary/20">
-          <Sparkles className="size-10 text-primary animate-pulse" aria-hidden />
+          <Map className="size-10 text-primary animate-pulse" aria-hidden />
         </div>
         <div className="text-center space-y-2">
           <h2 className="text-xl font-semibold text-foreground">

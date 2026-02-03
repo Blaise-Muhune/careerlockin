@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { requireUserAndProfile } from "@/lib/server/auth";
 import {
   getLatestRoadmapForUser,
+  getRoadmapById,
+  listRoadmapsForUser,
   type RoadmapWithSteps,
 } from "@/lib/server/db/roadmaps";
-import { getProfileWeeklyHours } from "@/lib/server/db/profiles";
+import { getProfileWeeklyHours, getProfileForRoadmapEdit } from "@/lib/server/db/profiles";
 import { getProgressMapForRoadmap } from "@/lib/server/db/progress";
 import { getCurrentWork } from "@/lib/server/db/currentWork";
 import {
@@ -16,6 +19,8 @@ import {
 import { getEntitlements } from "@/lib/server/billing/entitlements";
 import { ShareProgressButton } from "@/components/share/ShareProgressButton";
 import { RoadmapContent } from "./roadmap-content";
+import { RoadmapSwitcher } from "./roadmap-switcher";
+import { RegenerateRoadmapCard } from "./regenerate-roadmap-card";
 import { getProfileNetworkingSettings } from "@/lib/server/db/networking";
 import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
 
@@ -43,9 +48,26 @@ function groupStepsByPhase(
     .sort((a, b) => a.phaseOrder - b.phaseOrder);
 }
 
-export default async function RoadmapPage() {
+const PRO_ROADMAP_LIMIT = 5;
+
+type RoadmapPageProps = {
+  searchParams: Promise<{ id?: string }>;
+};
+
+export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
   const { userId } = await requireUserAndProfile();
-  const roadmap = await getLatestRoadmapForUser(userId);
+  const params = await searchParams;
+  const roadmapIdParam = params.id;
+
+  const [roadmapsList, latestRoadmap] = await Promise.all([
+    listRoadmapsForUser(userId),
+    getLatestRoadmapForUser(userId),
+  ]);
+
+  const roadmap: RoadmapWithSteps | null =
+    roadmapIdParam && roadmapsList.some((r) => r.id === roadmapIdParam)
+      ? await getRoadmapById(userId, roadmapIdParam)
+      : latestRoadmap;
 
   if (!roadmap) {
     return (
@@ -63,10 +85,11 @@ export default async function RoadmapPage() {
     );
   }
 
-  const [progressMap, currentWork, profileHours, entitlements] = await Promise.all([
+  const [progressMap, currentWork, profileHours, profileForEdit, entitlements] = await Promise.all([
     getProgressMapForRoadmap(userId, roadmap.id),
     getCurrentWork(userId),
     getProfileWeeklyHours(userId),
+    getProfileForRoadmapEdit(userId),
     getEntitlements(userId),
   ]);
   const weeklyHours = profileHours?.weekly_hours ?? 0;
@@ -101,19 +124,45 @@ export default async function RoadmapPage() {
     };
   });
 
+  const canCreateMore = entitlements.isPro && roadmapsList.length < PRO_ROADMAP_LIMIT;
+  const hasMultipleRoadmaps = roadmapsList.length > 1;
+
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
         title="Roadmap"
         subtitle={subtitle}
         action={
-          <ShareProgressButton
-            variant="outline"
-            size="sm"
-            milestonePercent={roadmapPercent}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {hasMultipleRoadmaps && (
+              <Suspense fallback={null}>
+                <RoadmapSwitcher
+                  roadmaps={roadmapsList}
+                  currentId={roadmap.id}
+                />
+              </Suspense>
+            )}
+            {canCreateMore && (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/roadmaps/new">Create new</Link>
+              </Button>
+            )}
+            <ShareProgressButton
+              variant="outline"
+              size="sm"
+              milestonePercent={roadmapPercent}
+            />
+          </div>
         }
       />
+      {entitlements.canViewFullRoadmap && (
+        <RegenerateRoadmapCard
+          roadmapId={roadmap.id}
+          targetRole={roadmap.target_role}
+          profile={profileForEdit}
+          regenerationCount={roadmap.regeneration_count ?? 0}
+        />
+      )}
       <RoadmapContent
         roadmapId={roadmap.id}
         phases={phases}

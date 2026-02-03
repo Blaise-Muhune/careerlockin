@@ -6,6 +6,7 @@ import { getEntitlements } from "@/lib/server/billing/entitlements";
 import {
   getLatestRoadmapForUser,
   getPhaseIndexForStep,
+  listRoadmapsForUser,
 } from "@/lib/server/db/roadmaps";
 import { getProfileWeeklyHours } from "@/lib/server/db/profiles";
 import { listTimeLogsForWeek } from "@/lib/server/db/timeLogs";
@@ -50,6 +51,7 @@ export default async function DashboardPage() {
 
   const [
     roadmap,
+    roadmapsList,
     profileHours,
     networkingSettings,
     networkingCompletedThisWeek,
@@ -61,6 +63,7 @@ export default async function DashboardPage() {
     encouragementMessage,
   ] = await Promise.all([
     getLatestRoadmapForUser(userId),
+    listRoadmapsForUser(userId),
     getProfileWeeklyHours(userId),
     getProfileNetworkingSettings(userId),
     countNetworkingActionsForWeek(userId, weekStart),
@@ -142,6 +145,11 @@ export default async function DashboardPage() {
               <Button asChild>
                 <Link href="/roadmap">View roadmap</Link>
               </Button>
+              {entitlements.isPro && roadmapsList.length < 5 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/roadmaps/new">Add new project</Link>
+                </Button>
+              )}
               <ShareProgressButton
                 variant="outline"
                 size="sm"

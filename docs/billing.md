@@ -6,7 +6,7 @@ Hybrid model: one-time **Roadmap Unlock** (PLAN) and monthly **Pro** subscriptio
 
 - **Free**: Phase 1 visible; phases 2+ locked. Tracking allowed only for Phase 1 (step completion, current work). No time logs, no charts.
 - **Plan Unlocked**: One-time purchase. Full roadmap (all phases, steps, resources). Tracking allowed only for Phase 1. No time logs, no charts.
-- **Pro**: Subscription. Full roadmap + tracking in all phases (steps, time logs, current work) + charts and insights. Unlimited roadmaps.
+- **Pro**: Subscription. Full roadmap + tracking in all phases (steps, time logs, current work) + charts and insights. Up to 5 roadmaps.
 
 Pro takes priority over Plan Unlocked. Tracking beyond Phase 1 (and time logs/charts) requires Pro.
 
@@ -59,6 +59,6 @@ User is identified via `client_reference_id` and `metadata.user_id` on the Check
 - **canViewFullRoadmap** = `hasRoadmapUnlock || isPro`. If false, only Phase 1 is fully visible; other phases show titles but content is locked.
 - **canUseTracking** = `isPro`. Step completion and current-work are allowed for Phase 1 for all tiers; phases 2+ require Pro. Time logs require Pro (notes are per time log).
 - **canSeeCharts** = `isPro`. Weekly trend and phase completion charts require Pro.
-- **canGenerateExtraRoadmaps** = `isPro`. Free and one-time unlock: 1 roadmap; Pro: unlimited.
+- **canGenerateExtraRoadmaps** = `isPro`. Free and one-time unlock: 1 roadmap; Pro: up to 5 roadmaps.
 
 Canceled Pro: tracking and charts lock again. Full roadmap remains only if the user also has a `roadmap_unlock` purchase; otherwise phases beyond Phase 1 lock again.

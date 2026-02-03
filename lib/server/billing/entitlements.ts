@@ -21,7 +21,7 @@ const SUB_STATUS_TRIALING = "trialing";
  *
  * - canViewFullRoadmap = hasRoadmapUnlock OR isPro
  * - Tracking, charts, insights = Pro only
- * - canGenerateExtraRoadmaps = true only for Pro (unlimited); free and one-time unlock get 1 roadmap
+ * - canGenerateExtraRoadmaps = true only for Pro (up to 5); free and one-time unlock get 1 roadmap
  */
 export async function getEntitlements(userId: string): Promise<Entitlements> {
   const supabase = await createClient();
