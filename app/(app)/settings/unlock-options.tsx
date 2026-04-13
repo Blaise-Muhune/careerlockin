@@ -71,15 +71,19 @@ export function UnlockOptions({
     <section id="unlock-options" className="space-y-4" aria-labelledby="unlock-options-heading">
       <h2 id="unlock-options-heading" className="text-sm font-medium text-foreground">Unlock options</h2>
       {error && (
-        <p className="text-sm text-destructive" role="alert">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
+      <p className="text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">Roadmap Unlock</span> gives full roadmap access with a one-time purchase.
+        <span className="ml-1 font-medium text-foreground">Pro</span> includes roadmap access plus tracking, charts, and insights.
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {showUnlockPlan && (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Unlock full roadmap</CardTitle>
+              <CardTitle className="text-base">Roadmap Unlock</CardTitle>
               <CardDescription>
                 One-time purchase. See all phases, steps, and resources.
               </CardDescription>
@@ -91,7 +95,7 @@ export function UnlockOptions({
                 onClick={handleUnlock}
                 disabled={!!pending}
               >
-                {pending === "unlock" ? "Redirecting…" : "Unlock full roadmap"}
+                {pending === "unlock" ? "Redirecting…" : "Unlock roadmap access"}
               </Button>
             </CardContent>
           </Card>

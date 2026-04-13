@@ -14,6 +14,7 @@ const styles: Record<PlanBadgeVariant, string> = {
 };
 
 export function PlanBadge({ variant, className }: PlanBadgeProps) {
+  const label = variant === "Plan Unlocked" ? "Roadmap Unlock" : variant;
   return (
     <span
       className={cn(
@@ -22,7 +23,7 @@ export function PlanBadge({ variant, className }: PlanBadgeProps) {
         className
       )}
     >
-      {variant}
+      {label}
     </span>
   );
 }

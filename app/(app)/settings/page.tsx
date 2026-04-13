@@ -49,6 +49,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const unlockSuccess = params.unlock === "success";
   const proSuccess = params.pro === "success";
   const fromPortal = params.from_portal === "1";
+  const source =
+    typeof params.source === "string" ? params.source : null;
 
   const [entitlements, emailPrefs, subscriptionDetails, proEnded] =
     await Promise.all([
@@ -82,6 +84,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         fromPortal={fromPortal}
         cancelAtPeriodEnd={periodEndFormatted}
         proEnded={proEnded}
+        source={source}
       />
       <section className="space-y-4">
         <h2 className="text-sm font-medium text-foreground">Your access</h2>

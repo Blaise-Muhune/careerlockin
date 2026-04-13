@@ -3,7 +3,7 @@
  * Renders schema objects into script tags; use only trusted data (site config, static content).
  */
 
-import { siteName, siteUrl, siteDescription } from "./site";
+import { siteName, siteUrl, siteDescription, supportEmail } from "./site";
 
 export type JsonLdValue = string | number | boolean | null | JsonLdValue[] | { [key: string]: JsonLdValue };
 
@@ -22,6 +22,12 @@ export function organizationSchema(): Record<string, JsonLdValue> {
     name: siteName,
     url: siteUrl,
     description: siteDescription,
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: supportEmail,
+      url: `${siteUrl}/legal`,
+    },
   };
 }
 

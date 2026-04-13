@@ -14,18 +14,18 @@ export default async function NewRoadmapPage() {
   ]);
 
   if (!entitlements.isPro) {
-    redirect("/settings");
+    redirect("/settings?source=create_roadmap_requires_pro");
   }
 
   if (roadmaps.length >= PRO_ROADMAP_LIMIT) {
-    redirect("/roadmap");
+    redirect("/roadmap?source=roadmap_limit_reached");
   }
 
   return (
     <div className="flex flex-col gap-8 sm:gap-12">
       <div className="text-center space-y-3 max-w-xl mx-auto">
         <p className="text-xs font-medium uppercase tracking-widest text-primary">
-          New roadmap
+          Create another roadmap
         </p>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
           What do you want to build next?

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Accordion,
   AccordionContent,
@@ -62,6 +64,7 @@ export function RoadmapContent({
   isPro = false,
   networkingByPhaseIndex,
 }: RoadmapContentProps) {
+  const router = useRouter();
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
   const currentStepId = currentWork?.step_id ?? null;
@@ -110,7 +113,7 @@ export function RoadmapContent({
   const planLabel = isPro
     ? "Pro"
     : hasRoadmapUnlock
-      ? "Full roadmap"
+      ? "Roadmap Unlock"
       : null;
 
   // Free users: only Phase 1 can be expanded; other phases stay locked
@@ -130,9 +133,9 @@ export function RoadmapContent({
     [canViewFullRoadmap, firstPhaseValue]
   );
 
-  const scrollToPricing = useCallback(() => {
-    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  const handleLockedPhaseClick = useCallback(() => {
+    router.push("/settings?source=locked_roadmap");
+  }, [router]);
 
   return (
     <>
@@ -149,9 +152,9 @@ export function RoadmapContent({
           </p>
           <p>
             You can go back to the{" "}
-            <a href="/dashboard" className="text-primary underline-offset-4 hover:underline">
+            <Link href="/dashboard" className="text-primary underline-offset-4 hover:underline">
               dashboard
-            </a>{" "}
+            </Link>{" "}
             and create a new roadmap if something went wrong while saving.
           </p>
         </div>
@@ -173,7 +176,14 @@ export function RoadmapContent({
             <AccordionItem key={phase} value={phase}>
               <AccordionTrigger
                 className="hover:no-underline data-[state=open]:border-b data-[state=open]:pb-4"
-                onClick={isLocked ? scrollToPricing : undefined}
+                onClick={
+                  isLocked
+                    ? (event) => {
+                        event.preventDefault();
+                        handleLockedPhaseClick();
+                      }
+                    : undefined
+                }
               >
                 <div className="flex flex-col items-start gap-1.5 text-left w-full pr-2">
                   <span className="font-semibold">

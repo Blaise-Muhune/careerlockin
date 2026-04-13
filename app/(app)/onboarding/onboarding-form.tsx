@@ -194,7 +194,7 @@ export function OnboardingForm() {
               <select
                 id="target_timeline_weeks"
                 className={cn(
-                  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 md:text-sm"
+                  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 md:text-sm"
                 )}
                 aria-invalid={Boolean(errors.target_timeline_weeks ?? state?.fieldErrors?.target_timeline_weeks)}
                 {...register("target_timeline_weeks", { setValueAs: (v) => (v === "" ? "" : v) })}
@@ -213,7 +213,7 @@ export function OnboardingForm() {
             <select
               id="current_level"
               className={cn(
-                "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 md:text-sm"
+                "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 md:text-sm"
               )}
               aria-invalid={Boolean(errors.current_level ?? state?.fieldErrors?.current_level)}
               {...register("current_level", { setValueAs: (v) => (v === "" ? undefined : v) })}

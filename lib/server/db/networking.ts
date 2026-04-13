@@ -1,16 +1,12 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getWeekEndFromStart } from "@/lib/weekStart";
+import {
+  NETWORKING_ACTION_TYPES,
+  type NetworkingActionType,
+} from "@/lib/networking/actionTypes";
 
-export const NETWORKING_ACTION_TYPES = [
-  "outreach_sent",
-  "follow_up_sent",
-  "comment_left",
-  "post_published",
-  "coffee_chat_requested",
-] as const;
-
-export type NetworkingActionType = (typeof NETWORKING_ACTION_TYPES)[number];
+export { NETWORKING_ACTION_TYPES, type NetworkingActionType };
 
 export type NetworkingPreference = "balanced" | "quiet" | "active";
 
@@ -163,5 +159,82 @@ export async function countNetworkingActionsForWeek(
     throw new Error(error.message);
   }
   return count ?? 0;
+}
+
+/** Per-type counts for a single calendar day (used for checkbox UI). */
+export async function getNetworkingCountsByTypeForDate(
+  userId: string,
+  actionDate: string
+): Promise<Record<NetworkingActionType, number>> {
+  const empty = Object.fromEntries(
+    NETWORKING_ACTION_TYPES.map((t) => [t, 0])
+  ) as Record<NetworkingActionType, number>;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("networking_actions")
+    .select("action_type")
+    .eq("user_id", userId)
+    .eq("action_date", actionDate);
+
+  if (error) {
+    if (
+      /schema cache|networking_actions|relation .* does not exist|table .* does not exist|column .* does not exist/i.test(
+        error.message
+      )
+    ) {
+      return empty;
+    }
+    throw new Error(error.message);
+  }
+
+  const out = { ...empty };
+  const validTypes = new Set<string>(NETWORKING_ACTION_TYPES);
+  for (const row of data ?? []) {
+    const t = row.action_type as string;
+    if (validTypes.has(t)) {
+      out[t as NetworkingActionType] += 1;
+    }
+  }
+  return out;
+}
+
+/** Removes the most recent row for that user/date/type (for “uncheck” UX). */
+export async function deleteLatestNetworkingActionForDayAndType(
+  userId: string,
+  actionDate: string,
+  actionType: NetworkingActionType
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("networking_actions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("action_date", actionDate)
+    .eq("action_type", actionType)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (
+      /schema cache|networking_actions|relation .* does not exist|table .* does not exist|column .* does not exist/i.test(
+        error.message
+      )
+    ) {
+      return false;
+    }
+    throw new Error(error.message);
+  }
+  if (!data?.id) return false;
+
+  const { error: delError } = await supabase
+    .from("networking_actions")
+    .delete()
+    .eq("id", data.id)
+    .eq("user_id", userId);
+
+  if (delError) throw new Error(delError.message);
+  return true;
 }
 

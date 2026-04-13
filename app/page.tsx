@@ -4,6 +4,7 @@ import { GraduationCap, Briefcase, BookOpen, Clock } from "lucide-react";
 import { getAuthState } from "@/lib/server/auth";
 import { LandingShell } from "@/components/layout/LandingShell";
 import { RoadmapPreviewMock } from "@/components/marketing/RoadmapPreviewMock";
+import { PricingTiers } from "@/components/marketing/PricingTiers";
 import { LandingJsonLd } from "@/components/seo/LandingJsonLd";
 import { Button } from "@/components/ui/button";
 
@@ -202,40 +203,12 @@ export default async function Home() {
         <h2 id="pricing-heading" className="text-2xl sm:text-3xl font-semibold text-foreground text-center mt-2 mb-12">
           Simple, transparent pricing
         </h2>
-        <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
-          <div className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm">
-            <h3 className="font-medium text-foreground text-base">Free</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              One roadmap, Phase 1, and a preview. No card required.
-            </p>
-            <Button asChild variant="secondary" className="mt-6 w-full">
-              <Link href="/signup">Get started free</Link>
-            </Button>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm">
-            <h3 className="font-medium text-foreground text-base">One-time unlock</h3>
-            <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">$19.99</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Full plan, all phases, lifetime access.
-            </p>
-            <Button asChild variant="secondary" className="mt-6 w-full">
-              <Link href="/signup">Unlock full roadmap</Link>
-            </Button>
-          </div>
-          <div className="rounded-xl border-2 border-primary/30 bg-primary/4 p-6 flex flex-col shadow-sm">
-            <span className="text-xs font-medium uppercase tracking-wide text-primary">Recommended</span>
-            <h3 className="font-medium text-foreground text-base mt-1">Pro</h3>
-            <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">
-              $9.99<span className="text-sm font-normal text-muted-foreground">/month</span>
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Tracking, time logs, insights, recap emails.
-            </p>
-            <Button asChild className="mt-6 w-full">
-              <Link href="/signup">Start with Pro</Link>
-            </Button>
-          </div>
-        </div>
+        <PricingTiers />
+        <p className="text-center text-sm text-muted-foreground mt-8">
+          <Link href="/pricing" className="text-primary font-medium hover:underline underline-offset-2">
+            Full comparison and FAQ
+          </Link>
+        </p>
       </section>
 
       {/* Final CTA */}
@@ -259,6 +232,15 @@ export default async function Home() {
       <footer className={`${containerClass} py-10 border-t border-border/60`}>
         <div className="text-center text-sm text-muted-foreground space-y-2">
           <p>CareerLockin — Tech career roadmaps and progress tracking.</p>
+          <p>
+            <Link href="/pricing" className="text-primary hover:underline underline-offset-2">
+              Pricing
+            </Link>
+            {" · "}
+            <Link href="/legal" className="text-primary hover:underline underline-offset-2">
+              Legal
+            </Link>
+          </p>
           <p>
             Questions?{" "}
             <a href={`mailto:${supportEmail}`} className="text-primary hover:underline underline-offset-2">

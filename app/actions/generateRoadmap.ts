@@ -22,13 +22,28 @@ const profileInputSchema = z.object({
   prior_exposure: z.array(z.string()).optional().nullable(),
   learning_preference: z.string().optional().nullable(),
   target_role_job_description: z.string().max(2000).optional().nullable(),
+  /** Optional: add a final phase focused on hireability alongside AI tools (verification, judgment, portfolio proof). */
+  include_ai_proof_module: z.boolean().default(false),
 });
 
 export type GenerateRoadmapState =
   | { ok: true; roadmapId: string }
   | { ok: false; error: string };
 
-const SYSTEM_PROMPT = `You are a career roadmap generator focused on helping users land jobs in the current market. You have access to web_search. Use it to find the best, genuinely valuable resources and realistic, job-aligned projects—things that actually prepare the user for day-to-day work and interviews. Output a single JSON object that matches the schema below.
+const SYSTEM_PROMPT = `You are a career roadmap generator focused on helping users land jobs in the current market.
+
+Execution policy:
+- First gather sources with web_search (use multiple focused queries if needed).
+- Then generate ONE strict JSON object matching the schema.
+- Before final output, run a self-check against all rules and fix violations.
+- Never invent URLs. If unsure, omit resources instead of guessing.
+
+Quality bar:
+- Prioritize practical, job-task simulation over tutorial-only learning.
+- Prefer current, reputable resources over generic listicles.
+- Keep language concise, professional, and action-oriented.
+
+Output contract: return only the JSON object that matches the schema below.
 
 Schema (strict, no extra keys):
 {
@@ -71,7 +86,7 @@ Schema (strict, no extra keys):
               "title": "<string>",
               "url": "<string>",
               "publisher": "<string> (domain or brand)",
-              "resource_type": "video" | "course" | "playlist" | "certificate",
+              "resource_type": "video" | "course" | "playlist" | "certificate" | "article" | "documentation",
               "is_free": <boolean>,
               "source_id": "<string>"
             }
@@ -98,7 +113,13 @@ Rules:
 - Before outputting JSON, you must use web_search to find resources for each step.
 - Choose resources that give genuine value: current, job-relevant, and proven to help people get hired. Prioritize the best materials for the target role and today's market—not filler or outdated content.
 - Use professional language. Do not say “assignment”, “homework”, or “exercise”. Use: Build, Design, Implement, Simulate.
+- When the user prompt begins with the exact line "AI-proof module: ENABLED", follow the AI-proof instructions in the user prompt. You MUST add exactly one dedicated phase as the LAST phase (highest phase_order) focused on staying hireable while using AI tools responsibly; that phase still obeys the same phase/step/resource rules as every other phase.
 - Output only the JSON object, nothing else.`;
+
+const WEB_SEARCH_TOOL = {
+  type: "web_search" as const,
+  external_web_access: true,
+};
 
 function buildUserPrompt(params: {
   target_role: string;
@@ -110,12 +131,29 @@ function buildUserPrompt(params: {
   prior_exposure: string[] | null | undefined;
   learning_preference: string | null | undefined;
   target_role_job_description: string | null | undefined;
+  include_ai_proof_module: boolean;
 }): string {
-  const lines: string[] = [
-    "IMPORTANT: You MUST use the web_search tool FIRST to find real learning resources before generating the roadmap. Search for courses, tutorials, documentation, YouTube playlists, certificates, and articles that are current, job-relevant, and genuinely valuable for the target role.",
-    "1) Use web_search NOW to find the best learning resources that will genuinely help this user land a job in the current market: up-to-date, job-relevant, and proven valuable (courses, playlists, certificates, YouTube videos or playlists, articles—only ones that actually give value).",
-    "2) After finding resources via web_search, build a tech career roadmap as a single JSON object with phases, steps, a phase-aligned project per phase, and optional practices. Projects must simulate real job tasks (SaaS feature, dashboard, API integration, auth flow, data modeling, etc.) and avoid beginner clichés.",
-    "3) Attach 1–2 resources per step, using ONLY real URLs from the web_search results (copy-paste them exactly from the sources). If you cannot find good resources, use fewer or none—never invent URLs. Every resource must come from web_search sources.",
+  const lines: string[] = [];
+  if (params.include_ai_proof_module) {
+    lines.push(
+      "AI-proof module: ENABLED",
+      "",
+      "AI-proof module requirements:",
+      "- Add exactly ONE dedicated phase as the LAST phase (highest phase_order). Title it clearly for the user, e.g. Hireable in an AI-assisted workplace.",
+      "- That phase must have 4-7 steps, one phase_project, and 1-2 grounded resources per step like every other phase.",
+      "- Emphasize durable employability: validating AI-assisted output, specs/tests/checklists, communicating tradeoffs, portfolio artifacts that prove judgment (not generic AI slop), deepening role-specific fundamentals, and interview-ready stories tied to real decisions.",
+      "- Treat AI as a workflow accelerant the user must own end-to-end; avoid hollow prompt-only hacks as the main substance.",
+      "- Earlier phases may briefly reference verification or human ownership only where it fits naturally.",
+      ""
+    );
+  }
+  lines.push(
+    "IMPORTANT: You MUST use web_search before generating the roadmap.",
+    "Process:",
+    "1) Use web_search to gather high-signal resources for the exact target role and current hiring expectations.",
+    "2) Build a roadmap with practical phase projects that simulate day-to-day job tasks.",
+    "3) Attach 1-2 resources per step using ONLY exact URLs from web_search sources.",
+    "4) Run a self-check: schema validity, role relevance, timeline realism, no invented URLs, no filler projects.",
     "",
     `Target role: ${params.target_role}`,
     ...(params.target_role_job_description?.trim()
@@ -125,7 +163,7 @@ function buildUserPrompt(params: {
     `Current level: ${params.current_level}`,
     `Time horizon (weeks): ${params.time_horizon_weeks}`,
     `Goal: ${params.goal_intent.replace("_", " ")}`,
-  ];
+  );
   if (params.target_timeline_weeks != null) {
     lines.push(`Target timeline: ${params.target_timeline_weeks} weeks (constrain roadmap to fit).`);
   }
@@ -140,9 +178,33 @@ function buildUserPrompt(params: {
     "",
     "Project rules: 1 main phase project per phase, purposeful and job-relevant. Optional practices: only if they clearly reinforce the step, max 0–2 per step, always optional.",
     "Interview challenges: ONLY if goal is job/internship AND role is software engineering. Max 5–10 challenges across the entire roadmap. Label as optional interview practice.",
+    "Timeline realism: keep total estimated hours aligned with weekly_hours * time_horizon_weeks (allow up to ~15% slack).",
     "Pick the best resources for the current job market. Use only https links from web_search SOURCES; no shorteners. Output only the JSON matching the schema."
   );
   return lines.join("\n");
+}
+
+function normalizeSourceUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    const params = parsed.searchParams;
+    const keys = [...params.keys()];
+    for (const key of keys) {
+      if (
+        key.startsWith("utm_") ||
+        key === "ref" ||
+        key === "ref_src" ||
+        key === "source"
+      ) {
+        params.delete(key);
+      }
+    }
+    const normalized = parsed.toString();
+    return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+  } catch {
+    return url.trim();
+  }
 }
 
 function normalizeProjectsAndPractices(params: {
@@ -215,11 +277,13 @@ function enforceGroundingAndValidation(
   parsed: RoadmapJson,
   sourcesMap: Map<string, SourceEntry>
 ): RoadmapJson {
+  const normalizedToSourceId = new Map<string, string>();
+  for (const [id, entry] of sourcesMap.entries()) {
+    normalizedToSourceId.set(normalizeSourceUrl(entry.url), id);
+  }
+
   const findSourceIdForUrl = (url: string): string | null => {
-    for (const [id, entry] of sourcesMap.entries()) {
-      if (entry.url === url) return id;
-    }
-    return null;
+    return normalizedToSourceId.get(normalizeSourceUrl(url)) ?? null;
   };
 
   const phases = parsed.phases.map((phase) => ({
@@ -247,7 +311,12 @@ function enforceGroundingAndValidation(
                 : ("unverified" as const),
           };
         })
-        .filter((r): r is EnrichedResource => r !== null);
+        .filter((r): r is EnrichedResource => r !== null)
+        .filter((resource, index, arr) => {
+          const key = normalizeSourceUrl(resource.url);
+          return arr.findIndex((candidate) => normalizeSourceUrl(candidate.url) === key) === index;
+        })
+        .slice(0, 2);
       
       return { ...step, resources };
     }),
@@ -278,6 +347,50 @@ async function validateResourcesReachable(parsed: RoadmapJson): Promise<RoadmapJ
   return { ...parsed, phases };
 }
 
+function enforceRoadmapQuality(
+  parsed: RoadmapJson,
+  params: { weeklyHours: number; timeHorizonWeeks: number }
+): RoadmapJson {
+  const budgetHours = Math.max(1, params.weeklyHours * params.timeHorizonWeeks);
+  const maxAllowed = budgetHours * 1.15;
+
+  let totalHours = 0;
+  const phases = parsed.phases.map((phase, phaseIndex) => {
+    const steps = phase.steps.map((step, stepIndex) => {
+      const safeHours = Number.isFinite(step.est_hours)
+        ? Math.min(Math.max(step.est_hours, 1), budgetHours)
+        : 1;
+      totalHours += safeHours;
+      return {
+        ...step,
+        step_order: stepIndex + 1,
+        est_hours: safeHours,
+      };
+    });
+
+    return {
+      ...phase,
+      phase_order: phaseIndex + 1,
+      steps,
+    };
+  });
+
+  if (totalHours <= maxAllowed) {
+    return { ...parsed, phases };
+  }
+
+  const scale = maxAllowed / totalHours;
+  const scaledPhases = phases.map((phase) => ({
+    ...phase,
+    steps: phase.steps.map((step) => ({
+      ...step,
+      est_hours: Math.max(1, Number((step.est_hours * scale).toFixed(1))),
+    })),
+  }));
+
+  return { ...parsed, phases: scaledPhases };
+}
+
 const PRO_ROADMAP_LIMIT = 5;
 
 function parseFormDataToInput(formData: FormData | null) {
@@ -290,6 +403,7 @@ function parseFormDataToInput(formData: FormData | null) {
   const prior_exposure = formData.getAll("prior_exposure");
   const learning_preference = formData.get("learning_preference");
   const target_role_job_description = formData.get("target_role_job_description");
+  const include_ai_proof_module = formData.get("include_ai_proof_module") === "on";
   if (typeof target_role !== "string" || target_role.trim() === "") return null;
   if (weekly_hours === null || weekly_hours === undefined) return null;
   return {
@@ -312,6 +426,7 @@ function parseFormDataToInput(formData: FormData | null) {
       typeof target_role_job_description === "string" && target_role_job_description.trim()
         ? target_role_job_description.trim()
         : null,
+    include_ai_proof_module,
   };
 }
 
@@ -364,6 +479,7 @@ export async function generateRoadmap(
         prior_exposure: customInput.prior_exposure,
         learning_preference: customInput.learning_preference,
         target_role_job_description: customInput.target_role_job_description,
+        include_ai_proof_module: customInput.include_ai_proof_module,
       });
     } else {
       const { data: profile, error: profileError } = await supabase
@@ -388,6 +504,7 @@ export async function generateRoadmap(
         prior_exposure: profile.prior_exposure ?? null,
         learning_preference: profile.learning_preference ?? null,
         target_role_job_description: profile.target_role_job_description ?? null,
+        include_ai_proof_module: false,
       });
     }
 
@@ -426,8 +543,8 @@ export async function generateRoadmap(
           model,
           instructions: SYSTEM_PROMPT,
           input: userPrompt,
-          tools: [{ type: "web_search" }],
-          tool_choice: "auto", // Let model decide, but prompt strongly encourages web_search
+          tools: [WEB_SEARCH_TOOL],
+          tool_choice: "required",
           include: ["web_search_call.action.sources"],
           text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
           temperature: 0.3,
@@ -550,6 +667,10 @@ export async function generateRoadmap(
     });
     roadmap = enforceGroundingAndValidation(roadmap, sourcesMap);
     roadmap = await validateResourcesReachable(roadmap);
+    roadmap = enforceRoadmapQuality(roadmap, {
+      weeklyHours: input.data.weekly_hours,
+      timeHorizonWeeks: input.data.time_horizon_weeks,
+    });
 
     const roadmapId = await createRoadmapFromJson(userId, roadmap, model);
     return { ok: true, roadmapId };
@@ -623,6 +744,7 @@ export async function regenerateRoadmap(
       prior_exposure: customInput.prior_exposure,
       learning_preference: customInput.learning_preference,
       target_role_job_description: customInput.target_role_job_description,
+      include_ai_proof_module: customInput.include_ai_proof_module,
     });
 
     if (!input.success) {
@@ -641,6 +763,7 @@ export async function regenerateRoadmap(
       prior_exposure: input.data.prior_exposure ?? null,
       learning_preference: input.data.learning_preference ?? null,
       target_role_job_description: input.data.target_role_job_description ?? null,
+      include_ai_proof_module: input.data.include_ai_proof_module,
     });
     const model = "gpt-4.1-mini";
 
@@ -656,8 +779,8 @@ export async function regenerateRoadmap(
           model,
           instructions: SYSTEM_PROMPT,
           input: userPrompt,
-          tools: [{ type: "web_search" }],
-          tool_choice: "auto",
+          tools: [WEB_SEARCH_TOOL],
+          tool_choice: "required",
           include: ["web_search_call.action.sources"],
           text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
           temperature: 0.3,
@@ -724,6 +847,10 @@ export async function regenerateRoadmap(
     });
     roadmap = enforceGroundingAndValidation(roadmap, sourcesMap);
     roadmap = await validateResourcesReachable(roadmap);
+    roadmap = enforceRoadmapQuality(roadmap, {
+      weeklyHours: input.data.weekly_hours,
+      timeHorizonWeeks: input.data.time_horizon_weeks,
+    });
 
     await replaceRoadmapFromJson(userId, roadmapId, roadmap, model);
     return { ok: true, roadmapId };

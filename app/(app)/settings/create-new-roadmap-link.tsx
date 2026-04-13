@@ -22,7 +22,7 @@ export async function CreateNewRoadmapLink({ userId }: CreateNewRoadmapLinkProps
       <Button asChild variant="outline" size="sm">
         <Link href="/roadmaps/new">
           <Plus className="size-4 mr-2" aria-hidden />
-          Create new roadmap
+          Create another roadmap
         </Link>
       </Button>
     </section>

@@ -70,8 +70,9 @@ export async function getRoadmapById(
 
   const { data: steps, error: stepsError } = await supabase
     .from("roadmap_steps")
-    .select("id, phase, title, description, est_hours, step_order, phase_project, practices")
+    .select("id, phase, title, description, est_hours, step_order, phase_project, practices, created_at")
     .eq("roadmap_id", roadmap.id)
+    .order("created_at", { ascending: true })
     .order("step_order", { ascending: true });
 
   if (stepsError || !steps?.length) {
@@ -121,8 +122,9 @@ export async function getLatestRoadmapForUser(
 
   const { data: steps, error: stepsError } = await supabase
     .from("roadmap_steps")
-    .select("id, phase, title, description, est_hours, step_order, phase_project, practices")
+    .select("id, phase, title, description, est_hours, step_order, phase_project, practices, created_at")
     .eq("roadmap_id", roadmap.id)
+    .order("created_at", { ascending: true })
     .order("step_order", { ascending: true });
 
   if (stepsError || !steps?.length) {
@@ -360,7 +362,7 @@ export async function getPhaseIndexForStep(
 
   const { data: step, error: stepError } = await supabase
     .from("roadmap_steps")
-    .select("roadmap_id, phase, step_order")
+    .select("roadmap_id, phase, created_at")
     .eq("id", stepId)
     .single();
 
@@ -368,20 +370,21 @@ export async function getPhaseIndexForStep(
 
   const { data: steps, error: stepsError } = await supabase
     .from("roadmap_steps")
-    .select("phase, step_order")
-    .eq("roadmap_id", step.roadmap_id);
+    .select("phase, created_at")
+    .eq("roadmap_id", step.roadmap_id)
+    .order("created_at", { ascending: true });
 
   if (stepsError || !steps?.length) return null;
 
-  const phaseMinOrder = new Map<string, number>();
+  const phaseFirstSeen = new Map<string, string>();
   for (const row of steps) {
-    const min = phaseMinOrder.get(row.phase);
-    if (min === undefined || row.step_order < min) {
-      phaseMinOrder.set(row.phase, row.step_order);
+    const firstSeen = phaseFirstSeen.get(row.phase);
+    if (firstSeen === undefined || row.created_at < firstSeen) {
+      phaseFirstSeen.set(row.phase, row.created_at);
     }
   }
-  const orderedPhases = [...phaseMinOrder.entries()]
-    .sort(([, a], [, b]) => a - b)
+  const orderedPhases = [...phaseFirstSeen.entries()]
+    .sort(([, a], [, b]) => a.localeCompare(b))
     .map(([phase]) => phase);
 
   const idx = orderedPhases.indexOf(step.phase);

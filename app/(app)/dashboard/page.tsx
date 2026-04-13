@@ -16,6 +16,7 @@ import { getProgressMapForRoadmap } from "@/lib/server/db/progress";
 import { getPhaseProgress } from "@/lib/server/roadmap/estimates";
 import {
   countNetworkingActionsForWeek,
+  getNetworkingCountsByTypeForDate,
   getProfileNetworkingSettings,
 } from "@/lib/server/db/networking";
 import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
@@ -49,12 +50,15 @@ export default async function DashboardPage() {
   const weekStart = getDefaultWeekStartDetroit();
   const weekEnd = getWeekEndFromStart(weekStart);
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const [
     roadmap,
     roadmapsList,
     profileHours,
     networkingSettings,
     networkingCompletedThisWeek,
+    networkingTodayByType,
     timeLogsThisWeek,
     recentCheckins,
     currentWork,
@@ -67,6 +71,7 @@ export default async function DashboardPage() {
     getProfileWeeklyHours(userId),
     getProfileNetworkingSettings(userId),
     countNetworkingActionsForWeek(userId, weekStart),
+    getNetworkingCountsByTypeForDate(userId, today),
     listTimeLogsForWeek(userId, weekStart, weekEnd),
     listRecentCheckins(userId, 8),
     getCurrentWork(userId),
@@ -84,7 +89,6 @@ export default async function DashboardPage() {
   const weeklyHours = profileHours?.weekly_hours ?? 0;
   const completedHours =
     timeLogsThisWeek.reduce((s, l) => s + l.minutes, 0) / 60;
-  const today = new Date().toISOString().slice(0, 10);
   const daysLoggedThisWeek = new Set(timeLogsThisWeek.map((l) => l.log_date)).size;
 
   const progressMap =
@@ -147,7 +151,7 @@ export default async function DashboardPage() {
               </Button>
               {entitlements.isPro && roadmapsList.length < 5 && (
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/roadmaps/new">Add new project</Link>
+                  <Link href="/roadmaps/new">Create another roadmap</Link>
                 </Button>
               )}
               <ShareProgressButton
@@ -181,9 +185,9 @@ export default async function DashboardPage() {
         <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
           {!entitlements.canViewFullRoadmap ? (
             <p className="text-sm text-muted-foreground">
-              Plan preview: Phase 1 visible.{" "}
+              Free plan: Phase 1 is visible.{" "}
               <Link href="/settings" className="font-medium text-primary hover:underline">
-                Unlock full roadmap
+                Unlock full roadmap access
               </Link>
               {" "}in Settings.
             </p>
@@ -191,7 +195,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted-foreground" data-plan-badge>
               You have{" "}
               <span className="font-semibold text-foreground">
-                {entitlements.isPro ? "Pro" : "full roadmap"}
+                {entitlements.isPro ? "Pro" : "Roadmap Unlock"}
               </span>
               {entitlements.isPro
                 ? " — tracking, time logs, and insights in all phases."
@@ -208,7 +212,6 @@ export default async function DashboardPage() {
           timeLogs={timeLogsThisWeek}
           defaultLogDate={today}
           canUseTracking={canUseTimeLogs}
-          networkingGoal={networkingGoal}
         />
         <div className="grid gap-6">
           <InProgressCard
@@ -221,11 +224,14 @@ export default async function DashboardPage() {
           />
           <NetworkingThisWeekCard
             weekStart={weekStart}
+            today={today}
+            todayCounts={networkingTodayByType}
             goal={networkingGoal}
             completed={networkingCompletedThisWeek}
             weeklyFocusTitle={networkingGuidance.weekly_focus_title}
             weeklyFocusDescription={networkingGuidance.weekly_focus_description}
             recommendedAction={recommendedNetworkingAction}
+            canUseTracking={canUseTimeLogs}
           />
         </div>
       </section>

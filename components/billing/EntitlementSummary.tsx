@@ -11,7 +11,7 @@ type EntitlementSummaryProps = {
 const rowConfig = [
   {
     key: "roadmapDetails" as const,
-    label: "Roadmap details",
+    label: "Full roadmap access",
     icon: Map,
   },
   {

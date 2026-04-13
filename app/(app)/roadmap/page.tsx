@@ -33,31 +33,39 @@ function formatWeeks(w: number): string {
 function groupStepsByPhase(
   steps: RoadmapWithSteps["steps"]
 ): Array<{ phase: string; phaseOrder: number; steps: RoadmapWithSteps["steps"] }> {
-  const byPhase = new Map<string, RoadmapWithSteps["steps"]>();
-  for (const step of steps) {
-    const list = byPhase.get(step.phase) ?? [];
-    list.push(step);
-    byPhase.set(step.phase, list);
+  const byPhase = new Map<
+    string,
+    { firstSeenIndex: number; steps: RoadmapWithSteps["steps"] }
+  >();
+  for (let idx = 0; idx < steps.length; idx++) {
+    const step = steps[idx]!;
+    const existing = byPhase.get(step.phase);
+    if (existing) {
+      existing.steps.push(step);
+      continue;
+    }
+    byPhase.set(step.phase, { firstSeenIndex: idx, steps: [step] });
   }
   return Array.from(byPhase.entries())
-    .map(([phase, s]) => ({
+    .sort(([, a], [, b]) => a.firstSeenIndex - b.firstSeenIndex)
+    .map(([phase, group], phaseIndex) => ({
       phase,
-      phaseOrder: Math.min(...s.map((st) => st.step_order)),
-      steps: s.sort((a, b) => a.step_order - b.step_order),
-    }))
-    .sort((a, b) => a.phaseOrder - b.phaseOrder);
+      phaseOrder: phaseIndex + 1,
+      steps: [...group.steps].sort((a, b) => a.step_order - b.step_order),
+    }));
 }
 
 const PRO_ROADMAP_LIMIT = 5;
 
 type RoadmapPageProps = {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; source?: string }>;
 };
 
 export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
   const { userId } = await requireUserAndProfile();
   const params = await searchParams;
   const roadmapIdParam = params.id;
+  const source = params.source;
 
   const [roadmapsList, latestRoadmap] = await Promise.all([
     listRoadmapsForUser(userId),
@@ -129,6 +137,14 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
 
   return (
     <div className="flex flex-col gap-10">
+      {source === "roadmap_limit_reached" && (
+        <div
+          className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground"
+          role="status"
+        >
+          You already have the maximum number of roadmaps on your Pro plan. Choose one below to continue.
+        </div>
+      )}
       <PageHeader
         title="Roadmap"
         subtitle={subtitle}
@@ -144,7 +160,7 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
             )}
             {canCreateMore && (
               <Button asChild variant="outline" size="sm">
-                <Link href="/roadmaps/new">Create new</Link>
+                <Link href="/roadmaps/new">Create another roadmap</Link>
               </Button>
             )}
             <ShareProgressButton

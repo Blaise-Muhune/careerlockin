@@ -13,6 +13,7 @@ import {
   List,
   BookOpen,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -248,7 +249,7 @@ export function NewRoadmapForm() {
                 <select
                   id="target_timeline_weeks"
                   className={cn(
-                    "flex h-12 w-full rounded-md border border-input bg-transparent px-4 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+                    "flex h-12 w-full rounded-md border border-input bg-background px-4 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
                   )}
                   {...register("target_timeline_weeks", { setValueAs: (v) => (v === "" ? "" : v) })}
                 >
@@ -278,7 +279,7 @@ export function NewRoadmapForm() {
               <select
                 id="current_level"
                 className={cn(
-                  "flex h-12 w-full rounded-md border border-input bg-transparent px-4 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 max-w-xs"
+                  "flex h-12 w-full rounded-md border border-input bg-background px-4 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 max-w-xs"
                 )}
                 {...register("current_level", { setValueAs: (v) => (v === "" ? undefined : v) })}
               >
@@ -372,6 +373,41 @@ export function NewRoadmapForm() {
             </div>
           </section>
         </div>
+
+        {/* AI-proof module (optional) */}
+        <section className="mt-10 rounded-xl border border-border bg-card/50 p-5 shadow-xs">
+          <div className="flex gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ShieldCheck className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+                  AI-proof module
+                </h2>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  Optional
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Adds a final roadmap phase focused on staying hireable with AI tools: validating output,
+                clear ownership, portfolio proof of judgment, and interview-ready stories—not generic
+                prompt tricks alone.
+              </p>
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent py-1 hover:border-border/80">
+                <input
+                  type="checkbox"
+                  name="include_ai_proof_module"
+                  value="on"
+                  className="mt-1 size-4 shrink-0 rounded border-input"
+                />
+                <span className="text-sm font-medium text-foreground leading-snug">
+                  Include the AI-proof phase when you create this roadmap
+                </span>
+              </label>
+            </div>
+          </div>
+        </section>
 
         {/* Actions */}
         <div className="mt-12 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between pt-8 border-t border-border">

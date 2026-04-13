@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import {
@@ -522,10 +523,10 @@ export function StepDetailModal({
                 Close
               </Button>
               <Button size="sm" asChild className="min-h-[44px] touch-manipulation">
-                <a href="/settings">Unlock full roadmap</a>
+                <Link href="/settings">Unlock roadmap access</Link>
               </Button>
               <Button size="sm" variant="outline" asChild className="min-h-[44px] touch-manipulation">
-                <a href="/settings">Upgrade to Pro</a>
+                <Link href="/settings">Upgrade to Pro</Link>
               </Button>
             </>
           )}

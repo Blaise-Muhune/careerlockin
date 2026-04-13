@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navLinks: Array<{ href: string; label: string; external?: boolean }> = [
   { href: "#see-what-you-get", label: "Preview" },
   { href: "#how-it-works", label: "How it works" },
-  { href: "#pricing", label: "Pricing" },
+  { href: "/pricing", label: "Pricing" },
   { href: `mailto:${supportEmail}`, label: "Contact", external: true },
 ];
 

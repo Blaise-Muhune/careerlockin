@@ -134,4 +134,23 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Native form controls follow OS theme; align with our dark/light UI. */
+  html.dark {
+    color-scheme: dark;
+  }
+  html.light {
+    color-scheme: light;
+  }
+
+  /* Native <select>: closed field + option list (Chromium/Safari/Edge; partial elsewhere). */
+  select {
+    color: var(--foreground);
+    background-color: var(--background);
+  }
+  html.dark select option,
+  html.dark select optgroup {
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
 }

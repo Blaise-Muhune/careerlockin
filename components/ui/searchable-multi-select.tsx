@@ -113,7 +113,7 @@ export function SearchableMultiSelect({
         <ul
           id={`${id ?? name}-listbox`}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full min-w-[200px] overflow-auto rounded-md border border-input bg-popover py-1 shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full min-w-[200px] overflow-auto rounded-md border border-input bg-popover py-1 text-popover-foreground shadow-lg"
         >
           {showAddCustom ? (
             <li
@@ -135,7 +135,7 @@ export function SearchableMultiSelect({
                 role="option"
                 aria-selected={false}
                 onClick={() => add(option)}
-                className="cursor-pointer px-4 py-2.5 text-sm hover:bg-muted"
+                className="cursor-pointer px-4 py-2.5 text-sm text-popover-foreground hover:bg-muted hover:text-foreground"
               >
                 {option}
               </li>

@@ -92,7 +92,7 @@ export function SearchableSelect({
         <ul
           id={`${id ?? name}-listbox`}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-popover py-1 shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-input bg-popover py-1 text-popover-foreground shadow-lg"
         >
           {showAddCustom ? (
             <li
@@ -123,10 +123,10 @@ export function SearchableSelect({
                   setOpen(false);
                 }}
                 className={cn(
-                  "cursor-pointer px-4 py-2.5 text-sm",
+                  "cursor-pointer px-4 py-2.5 text-sm text-popover-foreground",
                   value === option
                     ? "bg-accent text-accent-foreground"
-                    : "hover:bg-muted"
+                    : "hover:bg-muted hover:text-foreground"
                 )}
               >
                 {option}

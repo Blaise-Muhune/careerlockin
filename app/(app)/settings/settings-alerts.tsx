@@ -11,6 +11,7 @@ type SettingsAlertsProps = {
   cancelAtPeriodEnd: string | null;
   /** When true, user's Pro subscription has ended; show banner to resubscribe. */
   proEnded?: boolean;
+  source?: string | null;
 };
 
 export function SettingsAlerts({
@@ -19,9 +20,13 @@ export function SettingsAlerts({
   fromPortal,
   cancelAtPeriodEnd,
   proEnded = false,
+  source = null,
 }: SettingsAlertsProps) {
   const hasSuccess = unlockSuccess || proSuccess;
-  const hasAny = hasSuccess || fromPortal || cancelAtPeriodEnd || proEnded;
+  const hasRedirectNotice =
+    source === "locked_roadmap" || source === "create_roadmap_requires_pro";
+  const hasAny =
+    hasSuccess || fromPortal || cancelAtPeriodEnd || proEnded || hasRedirectNotice;
 
   if (!hasAny) return null;
 
@@ -83,6 +88,30 @@ export function SettingsAlerts({
           <Info className="size-5 text-muted-foreground shrink-0" aria-hidden />
           <p className="text-sm text-muted-foreground">
             Billing updated. If you canceled Pro, you&apos;ll keep Pro access until the end of your billing period.
+          </p>
+        </div>
+      )}
+
+      {source === "locked_roadmap" && (
+        <div
+          className="rounded-xl border border-border bg-muted/30 px-4 py-3 sm:px-5 sm:py-4 flex items-center gap-3"
+          role="status"
+        >
+          <Info className="size-5 text-muted-foreground shrink-0" aria-hidden />
+          <p className="text-sm text-muted-foreground">
+            Phase 1 is available on Free. Upgrade here to unlock all roadmap phases and advanced tracking.
+          </p>
+        </div>
+      )}
+
+      {source === "create_roadmap_requires_pro" && (
+        <div
+          className="rounded-xl border border-border bg-muted/30 px-4 py-3 sm:px-5 sm:py-4 flex items-center gap-3"
+          role="status"
+        >
+          <Info className="size-5 text-muted-foreground shrink-0" aria-hidden />
+          <p className="text-sm text-muted-foreground">
+            Creating additional roadmaps is a Pro feature. Upgrade to Pro below to continue.
           </p>
         </div>
       )}

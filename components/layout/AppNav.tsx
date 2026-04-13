@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/roadmap", label: "Roadmap" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/settings", label: "Settings" },
 ] as const;
 

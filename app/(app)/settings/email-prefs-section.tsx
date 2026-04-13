@@ -25,8 +25,10 @@ type EmailPrefsSectionProps = {
 export function EmailPrefsSection({ initialPrefs }: EmailPrefsSectionProps) {
   const router = useRouter();
   const [prefs, setPrefs] = useState<EmailPrefs>(initialPrefs);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async (next: EmailPrefs) => {
+    setError(null);
     setPrefs(next);
     const fd = new FormData();
     fd.set("email_weekly_recap", next.email_weekly_recap ? "on" : "off");
@@ -34,7 +36,10 @@ export function EmailPrefsSection({ initialPrefs }: EmailPrefsSectionProps) {
     fd.set("email_milestones", next.email_milestones ? "on" : "off");
     const result = await updateEmailPrefs(fd);
     if (result.ok) router.refresh();
-    else setPrefs(initialPrefs);
+    else {
+      setPrefs(initialPrefs);
+      setError(result.error);
+    }
   };
 
   return (
@@ -47,6 +52,14 @@ export function EmailPrefsSection({ initialPrefs }: EmailPrefsSectionProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {error && (
+            <p
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="email_weekly_recap" className="text-sm font-normal">

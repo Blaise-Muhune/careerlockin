@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { RotateCw } from "lucide-react";
+import { RotateCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -205,7 +205,7 @@ export function RegenerateRoadmapCard({
                   <Label htmlFor="reg_target_timeline_weeks">Timeline (optional)</Label>
                   <select
                     id="reg_target_timeline_weeks"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     {...register("target_timeline_weeks", { setValueAs: (v) => (v === "" ? "" : v) })}
                   >
                     <option value="">No deadline</option>
@@ -242,7 +242,7 @@ export function RegenerateRoadmapCard({
                 <Label htmlFor="reg_current_level">Current level (optional)</Label>
                 <select
                   id="reg_current_level"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px]"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px]"
                   {...register("current_level", { setValueAs: (v) => (v === "" ? undefined : v) })}
                 >
                   <option value="">—</option>
@@ -311,6 +311,30 @@ export function RegenerateRoadmapCard({
                       <span>{label}</span>
                     </label>
                   ))}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="flex gap-3">
+                  <ShieldCheck className="size-5 shrink-0 text-primary mt-0.5" aria-hidden />
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">AI-proof module</span>
+                      <span className="text-xs font-medium text-muted-foreground">Optional</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Adds a final phase on judgment, verification, and portfolio proof so the roadmap
+                      reflects hireability alongside AI tools.
+                    </p>
+                    <label className="flex cursor-pointer items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="include_ai_proof_module"
+                        value="on"
+                        className="mt-0.5 size-4 rounded border-input shrink-0"
+                      />
+                      <span>Include AI-proof phase in regenerated roadmap</span>
+                    </label>
+                  </div>
                 </div>
               </div>
               <Button type="submit" disabled={isPending} className="w-full sm:w-auto">

@@ -7,7 +7,14 @@ import { z } from "zod";
  * No extra keys (enforced via .strict()).
  */
 
-const resourceTypeEnum = z.enum(["video", "course", "playlist", "certificate"]);
+const resourceTypeEnum = z.enum([
+  "video",
+  "course",
+  "playlist",
+  "certificate",
+  "article",
+  "documentation",
+]);
 const verificationStatusEnum = z.enum(["verified", "unverified"]);
 
 const phaseProjectSchema = z
@@ -16,7 +23,7 @@ const phaseProjectSchema = z
     short_description: z.string().min(1),
     goal: z.string().min(1),
     deliverables: z.array(z.string().min(1)).min(3).max(5),
-    estimated_time_hours: z.number(),
+    estimated_time_hours: z.number().min(1).max(300),
     is_optional: z.boolean(),
   })
   .strict();
@@ -52,7 +59,7 @@ const stepSchema = z
   .object({
     title: z.string().min(1),
     description: z.string().min(1),
-    est_hours: z.number(),
+    est_hours: z.number().min(1).max(200),
     step_order: z.number().int().positive(),
     resources: z.array(resourceSchema).min(0).max(2), // Allow 0 resources if none are valid/grounded
     // Optional practices: keep this nullable to satisfy Structured Outputs requirements.
