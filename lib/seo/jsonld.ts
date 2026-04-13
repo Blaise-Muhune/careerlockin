@@ -56,7 +56,7 @@ export function softwareApplicationSchema(): Record<string, JsonLdValue> {
       "@type": "AggregateOffer",
       priceCurrency: "USD",
       lowPrice: 0,
-      highPrice: 19.99,
+      highPrice: 29.99,
       offerCount: 3,
     },
   };
@@ -95,7 +95,7 @@ export const defaultFaqItems: FaqItem[] = [
   {
     question: "What is the one-time unlock vs Pro subscription?",
     answer:
-      "One-time unlock ($19.99) gives full roadmap details, all phases and steps, verified resources, and lifetime access. Pro ($9.99/month) adds progress tracking, time logs, insights, charts, and roadmap updates if goals change.",
+      "One-time unlock ($29.99) gives full roadmap details, all phases and steps, verified resources, and lifetime access. Pro ($9.99/month) adds progress tracking, time logs, insights, charts, and roadmap updates if goals change.",
   },
   {
     question: "How is the roadmap generated and personalized?",

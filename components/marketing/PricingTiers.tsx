@@ -67,7 +67,7 @@ export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersPr
         role="listitem"
       >
         <h3 className="font-medium text-foreground text-base">Roadmap Unlock</h3>
-        <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">$19.99</p>
+        <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">$29.99</p>
         <p className="text-sm text-muted-foreground mt-1">One-time</p>
         <p className="text-sm text-muted-foreground mt-2">
           Full roadmap content: all phases, steps, and resources. Lifetime access

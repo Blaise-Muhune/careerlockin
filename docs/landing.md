@@ -42,7 +42,7 @@ This doc explains positioning, copy tone, and audience for the marketing landing
 2. **How it works.** Three steps: goal/time → roadmap → track or follow.
 3. **What you get.** Three columns: Free, One-time unlock, Pro. Bullets only; no prices in this section.
 4. **Built for.** Four bullets (students, career switchers, self-taught developers, busy professionals). No testimonials.
-5. **Pricing.** Free / One-time ($19.99) / Pro ($9.99/month) cards. Calm copy; no countdowns.
+5. **Pricing.** Free / One-time ($29.99) / Pro ($9.99/month) cards. Calm copy; no countdowns.
 6. **Final CTA.** “Stop guessing what to learn next.” + “Create my roadmap.”
 
 ## Technical notes

@@ -46,7 +46,7 @@ export default async function OnboardingWelcomePage() {
               <p className="font-medium text-foreground">Optional upgrades</p>
               <ul className="list-disc pl-4 space-y-1.5">
                 <li>
-                  <strong className="text-foreground">Roadmap Unlock ($19.99 one-time)</strong> —
+                  <strong className="text-foreground">Roadmap Unlock ($29.99 one-time)</strong> —
                   all phases, steps, and resources for your roadmap.
                 </li>
                 <li>
