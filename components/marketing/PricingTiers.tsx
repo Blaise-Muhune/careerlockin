@@ -2,14 +2,47 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/** Where CTAs should send users (public pricing vs logged-out landing). */
+export type PricingCtaContext = "guest" | "onboarding" | "app";
+
 type PricingTiersProps = {
   className?: string;
+  /**
+   * guest: CTAs go to /signup.
+   * onboarding: user is signed in but has no profile yet — continue setup first.
+   * app: signed in with profile — free tier opens app; paid tiers open Settings checkout.
+   */
+  ctaContext?: PricingCtaContext;
 };
 
 /**
  * Shared Free / Roadmap Unlock / Pro cards (landing + /pricing).
  */
-export function PricingTiers({ className }: PricingTiersProps) {
+export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersProps) {
+  const freeHref =
+    ctaContext === "app" ? "/dashboard" : ctaContext === "onboarding" ? "/onboarding" : "/signup";
+  const freeLabel =
+    ctaContext === "app"
+      ? "Open dashboard"
+      : ctaContext === "onboarding"
+        ? "Continue setup"
+        : "Get started free";
+
+  const paidHref =
+    ctaContext === "app" ? "/settings#unlock-options" : ctaContext === "onboarding" ? "/onboarding" : "/signup";
+  const unlockLabel =
+    ctaContext === "app"
+      ? "Buy Roadmap Unlock"
+      : ctaContext === "onboarding"
+        ? "Continue setup"
+        : "Unlock roadmap access";
+  const proLabel =
+    ctaContext === "app"
+      ? "Subscribe in Settings"
+      : ctaContext === "onboarding"
+        ? "Continue setup"
+        : "Start with Pro";
+
   return (
     <div
       className={cn("grid sm:grid-cols-3 gap-6 sm:gap-8", className)}
@@ -26,7 +59,7 @@ export function PricingTiers({ className }: PricingTiersProps) {
           required.
         </p>
         <Button asChild variant="secondary" className="mt-6 w-full">
-          <Link href="/signup">Get started free</Link>
+          <Link href={freeHref}>{freeLabel}</Link>
         </Button>
       </div>
       <div
@@ -41,7 +74,7 @@ export function PricingTiers({ className }: PricingTiersProps) {
           to that plan. Tracking stays on Phase 1 unless you upgrade to Pro.
         </p>
         <Button asChild variant="secondary" className="mt-6 w-full">
-          <Link href="/signup">Unlock roadmap access</Link>
+          <Link href={paidHref}>{unlockLabel}</Link>
         </Button>
       </div>
       <div
@@ -60,7 +93,7 @@ export function PricingTiers({ className }: PricingTiersProps) {
           charts and insights, recap emails, and up to five roadmaps.
         </p>
         <Button asChild className="mt-6 w-full">
-          <Link href="/signup">Start with Pro</Link>
+          <Link href={paidHref}>{proLabel}</Link>
         </Button>
       </div>
     </div>

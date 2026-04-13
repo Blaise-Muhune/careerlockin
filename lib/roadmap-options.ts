@@ -242,5 +242,22 @@ export const PRIOR_EXPOSURE_QUICK_ADD = [
   "Excel",
 ] as const;
 
+/**
+ * Values for `profiles.prior_exposure` (must match DB check constraint).
+ * Use for onboarding and anywhere profile prior skills are edited.
+ */
+export const PROFILE_PRIOR_EXPOSURE = [
+  { value: "html_css", label: "HTML / CSS" },
+  { value: "javascript", label: "JavaScript" },
+  { value: "git", label: "Git" },
+  { value: "react", label: "React" },
+  { value: "databases", label: "Databases" },
+  { value: "apis", label: "APIs" },
+  { value: "python", label: "Python" },
+  { value: "none", label: "None" },
+] as const;
+
+export type ProfilePriorExposureValue = (typeof PROFILE_PRIOR_EXPOSURE)[number]["value"];
+
 export type TargetRole = (typeof TARGET_ROLES)[number];
 export type PriorExposure = (typeof PRIOR_EXPOSURE_OPTIONS)[number];
