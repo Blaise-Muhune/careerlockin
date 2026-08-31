@@ -7,8 +7,9 @@ import { requireUserForOnboarding } from "@/lib/server/auth";
 
 const currentLevels = ["beginner", "intermediate", "advanced"] as const;
 const goalIntents = ["job", "internship", "career_switch", "skill_upgrade"] as const;
-const priorExposureOptions = ["html_css", "javascript", "git", "react", "databases", "apis", "python", "none"] as const;
 const learningPreferences = ["reading", "video", "project_first", "mixed"] as const;
+
+const skillString = z.string().trim().min(1).max(80);
 
 const onboardingSchema = z.object({
   full_name: z.string().max(200).optional().or(z.literal("")),
@@ -29,10 +30,7 @@ const onboardingSchema = z.object({
     .union([z.enum(["8", "12", "16", "24"]), z.literal("")])
     .optional()
     .transform((v) => (v === "" ? null : (v != null ? Number(v) : null))),
-  prior_exposure: z
-    .array(z.enum(priorExposureOptions))
-    .optional()
-    .default([]),
+  prior_exposure: z.array(skillString).max(20).optional().default([]),
   learning_preference: z
     .enum(learningPreferences)
     .optional()
@@ -52,9 +50,10 @@ export async function submitOnboarding(
   const raw = Object.fromEntries(formData.entries());
   const priorExposureRaw = formData.getAll("prior_exposure");
   const priorExposureArr = Array.isArray(priorExposureRaw)
-    ? (priorExposureRaw as string[]).filter((x) =>
-        (priorExposureOptions as readonly string[]).includes(x)
-      )
+    ? (priorExposureRaw as string[])
+        .map((x) => x.trim())
+        .filter((x) => x.length > 0 && x.length <= 80)
+        .slice(0, 20)
     : [];
 
   const parsed = onboardingSchema.safeParse({

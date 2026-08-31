@@ -45,6 +45,15 @@ supabase db push
 | 10 | `00010_resources_source_verification.sql` | source_id, verification_status on resources |
 | 11 | `00011_step_projects_practices.sql` | phase_project, practices (jsonb) on roadmap_steps |
 | 12 | `00012_networking_support.sql` | linkedin_url, networking_* on profiles; networking_actions table |
+| 13 | `00013_subscriptions_cancel_at_period_end.sql` | cancel_at_period_end on subscriptions |
+| 14 | `00014_target_role_job_description.sql` | target_role_job_description on profiles |
+| 15 | `00015_roadmap_regeneration_count.sql` | regeneration_count on roadmaps |
+| 16 | `00016_stripe_events_processed_at.sql` | processed_at for recoverable webhook idempotency |
+| 17 | `00017_protect_is_admin.sql` | trigger blocking client elevation of is_admin |
+| 18 | `00018_llm_rate_limits.sql` | llm_generation_events for per-user rate limits |
+| 19 | `00019_product_events.sql` | product_events funnel table |
+| 20 | `00020_pro_regen_limit.sql` | regeneration_count check allows up to 3 (Pro) |
+| 21 | `00021_content_quality.sql` | fallback verification_status; freer prior_exposure |
 
 If any migration is skipped, the app may throw "could not find the table" or missing column errors.
 

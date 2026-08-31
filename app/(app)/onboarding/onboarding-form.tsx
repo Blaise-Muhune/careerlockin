@@ -26,7 +26,6 @@ import {
   TARGET_ROLES,
   ROLE_QUICK_ADD,
   PROFILE_PRIOR_EXPOSURE,
-  type ProfilePriorExposureValue,
 } from "@/lib/roadmap-options";
 
 const currentLevels = ["beginner", "intermediate", "advanced"] as const;
@@ -38,17 +37,6 @@ const learningPreferences = [
   { value: "project_first", label: "Projects first" },
   { value: "mixed", label: "Mixed" },
 ] as const;
-
-const profilePriorEnum = z.enum([
-  "html_css",
-  "javascript",
-  "git",
-  "react",
-  "databases",
-  "apis",
-  "python",
-  "none",
-]);
 
 const onboardingFormSchema = z.object({
   full_name: z.string().max(200).optional(),
@@ -66,15 +54,15 @@ const onboardingFormSchema = z.object({
     .enum(["reading", "video", "project_first", "mixed"])
     .optional()
     .or(z.literal("")),
-  prior_exposure: z.array(profilePriorEnum).optional(),
+  prior_exposure: z.array(z.string().min(1).max(80)).max(20).optional(),
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingFormSchema>;
 
 function togglePrior(
-  current: ProfilePriorExposureValue[] | undefined,
-  value: ProfilePriorExposureValue
-): ProfilePriorExposureValue[] {
+  current: string[] | undefined,
+  value: string
+): string[] {
   const list = current ?? [];
   if (list.includes(value)) {
     return list.filter((v) => v !== value);

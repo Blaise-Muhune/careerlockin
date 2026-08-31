@@ -28,6 +28,10 @@ const optional = z.object({
   GOOGLE_SITE_VERIFICATION: z.string().optional(),
   BING_SITE_VERIFICATION: z.string().optional(),
   NEXT_PUBLIC_TWITTER_HANDLE: z.string().optional(),
+  /** Set to 1/true/yes to disable all roadmap LLM generation. */
+  ROADMAP_GENERATION_DISABLED: z.string().optional(),
+  /** Max roadmap generations per user per rolling hour (default 3). */
+  LLM_GENERATIONS_PER_HOUR: z.string().optional(),
 });
 
 const fullSchema = required.merge(optional).superRefine((data, ctx) => {
@@ -63,6 +67,8 @@ function getRaw(): Input {
     GOOGLE_SITE_VERIFICATION: process.env.GOOGLE_SITE_VERIFICATION,
     BING_SITE_VERIFICATION: process.env.BING_SITE_VERIFICATION,
     NEXT_PUBLIC_TWITTER_HANDLE: process.env.NEXT_PUBLIC_TWITTER_HANDLE,
+    ROADMAP_GENERATION_DISABLED: process.env.ROADMAP_GENERATION_DISABLED,
+    LLM_GENERATIONS_PER_HOUR: process.env.LLM_GENERATIONS_PER_HOUR,
   } as Input;
 }
 

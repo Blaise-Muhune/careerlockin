@@ -26,15 +26,8 @@ All writes use the **server session user id** from `requireUserAndProfile()`; th
 
 ---
 
-## Weekly check-ins and time tracking
+## Weekly check-ins (legacy)
 
-- **weekly_checkins** holds past weekly snapshots (completed_hours, notes) for “Recent check-ins”. Notes are per time log; there is no separate week-notes flow. The app no longer relies on `planned_hours`; the column may remain in the DB for legacy data.
-- **Planned hours** come from the user’s profile: `profiles.weekly_hours` (set at onboarding).
-- **Completed hours** for the current week are computed from **time_logs** (daily logs); see `docs/time-tracking.md` for the full model.
-
-| Behavior | Where |
-|----------|--------|
-| Step belongs to user’s roadmap | `setStepDone()` in `lib/server/db/progress.ts`. |
-| Progress writes use session user | `toggleStep` action → `requireUserAndProfile()` then `setStepDone(userId, …)`. |
-| Check-in / notes uniqueness | Supabase upsert with `onConflict: "user_id,week_start"` in `upsertWeeklyCheckin()`. |
-| Time log writes use session user | `addTimeLogAction`, `editTimeLogAction`, `deleteTimeLogAction` → `requireUserAndProfile()` then DB helpers. |
+- **weekly_checkins** table and `lib/server/db/checkins.ts` remain for legacy data.
+- The dashboard **Recent check-ins** UI was removed; weekly progress is shown via time logs and momentum, not check-in snapshots.
+- Notes are per time log; there is no separate week-notes flow.

@@ -17,7 +17,7 @@ Optional, calm email nudges focused on encouragement and clarity. Everything is 
 | Variable | Where to get it | Example |
 |----------|-----------------|--------|
 | `RESEND_API_KEY` | Resend → API Keys | `re_xxxxxxxxxxxx` |
-| `EMAIL_FROM_ADDRESS` | Your verified domain; must match Resend | `CareerLockin <noreply@careerlockin.com>` |
+| `EMAIL_FROM_ADDRESS` | Your verified domain; must match Resend | `CareerLockin <careerlockinsupport@zingocorp.space>` |
 | `CRON_SECRET` | You choose a long random string | `a1b2c3d4...` (e.g. `openssl rand -hex 32`) |
 | `NEXT_PUBLIC_APP_URL` | Your app’s public URL (for “View dashboard” links) | `https://yourapp.com` or `http://localhost:3000` |
 
@@ -144,7 +144,7 @@ No promotional emails. No “upgrade now” in these nudges.
 | Env var              | Purpose                                |
 |----------------------|----------------------------------------|
 | `RESEND_API_KEY`     | Resend API key (from Resend dashboard) |
-| `EMAIL_FROM_ADDRESS` | From header (e.g. `CareerLockin <noreply@careerlockin.com>`) |
+| `EMAIL_FROM_ADDRESS` | From header (e.g. `CareerLockin <careerlockinsupport@zingocorp.space>`) |
 | `CRON_SECRET`        | Secret for cron routes (header `Authorization: Bearer <secret>` or query `?token=<secret>`) |
 | `NEXT_PUBLIC_APP_URL`| Base URL for “View dashboard” links    |
 

@@ -18,7 +18,7 @@ export function getEmailClient(): Resend | null {
 
 /**
  * From address for transactional emails. Uses EMAIL_FROM_ADDRESS from env.
- * Example: "CareerLockin <noreply@careerlockin.com>"
+ * Example: "CareerLockin <careerlockinsupport@zingocorp.space>"
  */
 export function getEmailFromAddress(): string | null {
   return getEnv().EMAIL_FROM_ADDRESS ?? null;

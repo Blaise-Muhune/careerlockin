@@ -15,7 +15,7 @@ const resourceTypeEnum = z.enum([
   "article",
   "documentation",
 ]);
-const verificationStatusEnum = z.enum(["verified", "unverified"]);
+const verificationStatusEnum = z.enum(["verified", "unverified", "fallback"]);
 
 const phaseProjectSchema = z
   .object({

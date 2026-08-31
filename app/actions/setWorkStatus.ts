@@ -37,11 +37,12 @@ export async function setWorkStatusAction(
     const phaseIndex =
       stepId != null ? await getPhaseIndexForStep(stepId) : null;
     const canTrackThisPhase =
-      phaseIndex === 0 || entitlements.isPro;
+      phaseIndex === 0 || entitlements.canTrackAllPhases;
     if (stepId != null && phaseIndex != null && !canTrackThisPhase) {
       return {
         ok: false,
-        error: "Upgrade to Pro to track phases beyond Phase 1.",
+        error:
+          "Unlock the full roadmap or upgrade to Pro to track phases beyond Phase 1.",
       };
     }
     await setCurrentWorkStatus(userId, parsed.data.status as CurrentWorkStatus);

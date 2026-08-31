@@ -16,12 +16,12 @@ const rowConfig = [
   },
   {
     key: "tracking" as const,
-    label: "Tracking",
+    label: "Step tracking",
     icon: Activity,
   },
   {
     key: "insights" as const,
-    label: "Insights",
+    label: "Time logs & insights",
     icon: BarChart3,
   },
 ];
@@ -67,6 +67,7 @@ export function EntitlementSummary({
 
 export function entitlementSummaryFromEntitlements(entitlements: {
   canViewFullRoadmap: boolean;
+  canTrackAllPhases: boolean;
   canUseTracking: boolean;
   canSeeCharts: boolean;
 }): {
@@ -76,7 +77,10 @@ export function entitlementSummaryFromEntitlements(entitlements: {
 } {
   return {
     roadmapDetails: entitlements.canViewFullRoadmap ? "Unlocked" : "Locked",
-    tracking: entitlements.canUseTracking ? "Unlocked" : "Locked",
-    insights: entitlements.canSeeCharts ? "Unlocked" : "Locked",
+    tracking: entitlements.canTrackAllPhases ? "Unlocked" : "Locked",
+    insights:
+      entitlements.canSeeCharts || entitlements.canUseTracking
+        ? "Unlocked"
+        : "Locked",
   };
 }

@@ -63,6 +63,8 @@ type RegenerateRoadmapCardProps = {
   targetRole: string;
   profile: ProfileForRoadmapEdit | null;
   regenerationCount: number;
+  /** Max regenerations for the user's plan (1 free/unlock, 3 pro). */
+  maxRegenerations: number;
 };
 
 export function RegenerateRoadmapCard({
@@ -70,11 +72,13 @@ export function RegenerateRoadmapCard({
   targetRole,
   profile,
   regenerationCount,
+  maxRegenerations,
 }: RegenerateRoadmapCardProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(regenerateRoadmap, null);
 
-  const canRegenerate = regenerationCount < 1;
+  const remaining = Math.max(0, maxRegenerations - regenerationCount);
+  const canRegenerate = remaining > 0;
 
   const {
     register,
@@ -111,7 +115,11 @@ export function RegenerateRoadmapCard({
   if (!canRegenerate) {
     return (
       <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-        You&apos;ve used your 1 regeneration for this roadmap.
+        You&apos;ve used all {maxRegenerations} regeneration
+        {maxRegenerations === 1 ? "" : "s"} for this roadmap.
+        {maxRegenerations < 3
+          ? " Upgrade to Pro for up to 3 regenerations per roadmap."
+          : ""}
       </div>
     );
   }
@@ -126,7 +134,7 @@ export function RegenerateRoadmapCard({
               <RotateCw className="size-4 text-muted-foreground" aria-hidden />
               <span className="font-medium">Edit & Regenerate</span>
               <span className="text-sm font-normal text-muted-foreground">
-                — 1 regeneration left
+                — {remaining} regeneration{remaining === 1 ? "" : "s"} left
               </span>
             </div>
           </AccordionTrigger>

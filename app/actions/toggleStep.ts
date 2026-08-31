@@ -30,11 +30,12 @@ export async function toggleStep(formData: FormData): Promise<ToggleStepState> {
       getPhaseIndexForStep(parsed.data.step_id),
     ]);
     const canTrackThisPhase =
-      phaseIndex === 0 || entitlements.isPro;
+      phaseIndex === 0 || entitlements.canTrackAllPhases;
     if (!canTrackThisPhase) {
       return {
         ok: false,
-        error: "Upgrade to Pro to track phases beyond Phase 1.",
+        error:
+          "Unlock the full roadmap or upgrade to Pro to track phases beyond Phase 1.",
       };
     }
     await setStepDone(userId, parsed.data.step_id, parsed.data.is_done);

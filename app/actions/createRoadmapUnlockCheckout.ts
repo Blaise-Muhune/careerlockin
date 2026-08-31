@@ -6,6 +6,7 @@ import { getStripe } from "@/lib/server/stripe/client";
 import { getPriceIds } from "@/lib/server/stripe/prices";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/server/env";
+import { trackProductEvent } from "@/lib/server/analytics/productEvents";
 
 export type CreateRoadmapUnlockCheckoutResult =
   | { ok: true; url: string }
@@ -13,6 +14,7 @@ export type CreateRoadmapUnlockCheckoutResult =
 
 export async function createRoadmapUnlockCheckout(): Promise<CreateRoadmapUnlockCheckoutResult> {
   const user = await requireUser();
+  void trackProductEvent(user.id, "checkout_unlock_started");
   const baseUrl = getBaseUrl();
 
   const supabase = await createClient();

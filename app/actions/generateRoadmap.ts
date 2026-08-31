@@ -7,10 +7,22 @@ import { requireUserAndProfile } from "@/lib/server/auth";
 import { getEnv } from "@/lib/server/env";
 import { logError } from "@/lib/server/logging";
 import { getEntitlements } from "@/lib/server/billing/entitlements";
+import { assertLlmGenerationAllowed } from "@/lib/server/ai/rateLimit";
+import { trackProductEvent } from "@/lib/server/analytics/productEvents";
+import { getRegenLimitForPlan } from "@/lib/server/billing/computeEntitlements";
 import { createClient } from "@/lib/supabase/server";
 import { roadmapJsonSchema, type RoadmapJson, type RoadmapResource } from "@/lib/server/ai/roadmapSchema";
 import { createRoadmapFromJson, replaceRoadmapFromJson, getRoadmapRegenerationCount } from "@/lib/server/db/roadmaps";
 import { validateUrl, verifyUrlReachable } from "@/lib/server/resources/validateUrl";
+import { getFallbackResource } from "@/lib/server/resources/fallbacks";
+import { getMarketGuidanceLines } from "@/lib/server/ai/marketGuidance";
+import {
+  buildGroundingIndexes,
+  diversifyPhaseHours,
+  findSourceIdForUrl,
+  normalizeSourceUrl,
+  rewriteLegacyResourceUrl,
+} from "@/lib/server/ai/roadmapQuality";
 
 const profileInputSchema = z.object({
   target_role: z.string().min(1),
@@ -30,18 +42,22 @@ export type GenerateRoadmapState =
   | { ok: true; roadmapId: string }
   | { ok: false; error: string };
 
-const SYSTEM_PROMPT = `You are a career roadmap generator focused on helping users land jobs in the current market.
+const SYSTEM_PROMPT = `You are a senior career coach and hiring-aware roadmap generator. Your plans must reflect CURRENT (2025–2026) job-market expectations for the target role—not outdated bootcamp defaults.
 
 Execution policy:
-- First gather sources with web_search (use multiple focused queries if needed).
+- First gather sources with web_search (multiple focused queries: role hiring skills, official docs, current tooling).
 - Then generate ONE strict JSON object matching the schema.
-- Before final output, run a self-check against all rules and fix violations.
-- Never invent URLs. If unsure, omit resources instead of guessing.
+- Before final output, self-check every rule below and fix violations.
+- Never invent URLs. If unsure, omit that resource.
 
-Quality bar:
-- Prioritize practical, job-task simulation over tutorial-only learning.
-- Prefer current, reputable resources over generic listicles.
-- Keep language concise, professional, and action-oriented.
+Quality bar (non-negotiable):
+- Practical job-task simulation over tutorial tourism.
+- Current, reputable resources (official docs and high-signal practitioners). Prefer react.dev over reactjs.org; prefer living docs over 2018 books when the topic moves fast.
+- Concise, professional, action-oriented language (Build, Design, Implement, Simulate—never assignment/homework/exercise).
+- Respect prior exposure aggressively: if the user already knows a topic, do not create a full early phase on it; skip or compress to a short refresh (≤20% of that phase time).
+- Hour estimates must be realistic AND varied: do not set every step to the same number (e.g. all 10h) or every project to the same number. Harder/build steps get more hours; refresh/basics get fewer.
+- Total step + phase_project hours must fit weekly_hours × time_horizon_weeks (±15%).
+- Follow any "Market guidance" section in the user prompt for stack and interview norms.
 
 Output contract: return only the JSON object that matches the schema below.
 
@@ -88,7 +104,8 @@ Schema (strict, no extra keys):
               "publisher": "<string> (domain or brand)",
               "resource_type": "video" | "course" | "playlist" | "certificate" | "article" | "documentation",
               "is_free": <boolean>,
-              "source_id": "<string>"
+              "source_id": "<string>",
+              "verification_status": null
             }
           ]
         }
@@ -100,20 +117,13 @@ Schema (strict, no extra keys):
 Rules:
 - Exactly 3 to 5 phases. Each phase has exactly 4 to 7 steps. Each step has 1 to 2 resources.
 - Each phase must include exactly ONE phase_project. Make it realistic, premium, and phase-aligned.
-- Do not generate filler projects. Avoid beginner clichés (no todo/calculator/weather apps).
-- Prefer “simulate a job task” over “build a demo app”. Example themes: SaaS feature implementation, auth flow, dashboard + analytics, API integration, data modeling, performance/UX hardening, deployment + monitoring.
-- Steps may include 0–2 practices. Practices must be optional. If unsure, generate fewer items, not more.
-- Coding challenges are allowed ONLY when (goal_intent is job OR internship) AND the target_role is software engineering. Never make challenges mandatory. Max 5–10 total challenges across the entire roadmap. Label as optional interview practice.
-- est_hours must be a number (can be decimal).
-- CRITICAL: You MUST use the web_search tool to find real URLs before generating resources. Do NOT invent URLs.
-- Only use URLs that come directly from pages you found via web_search (copy-paste them exactly).
-- If you cannot find a strong resource for a step, omit that resource entirely. Never guess or invent URLs.
-- resources[].url MUST be https. No url shorteners.
-- Every resource URL MUST come from web_search results. If web_search doesn't return good results, use fewer resources or omit them.
-- Before outputting JSON, you must use web_search to find resources for each step.
-- Choose resources that give genuine value: current, job-relevant, and proven to help people get hired. Prioritize the best materials for the target role and today's market—not filler or outdated content.
-- Use professional language. Do not say “assignment”, “homework”, or “exercise”. Use: Build, Design, Implement, Simulate.
-- When the user prompt begins with the exact line "AI-proof module: ENABLED", follow the AI-proof instructions in the user prompt. You MUST add exactly one dedicated phase as the LAST phase (highest phase_order) focused on staying hireable while using AI tools responsibly; that phase still obeys the same phase/step/resource rules as every other phase.
+- No filler projects. No beginner clichés (todo / calculator / weather / tic-tac-toe).
+- Prefer “simulate a job task” over “build a demo app”. Themes: SaaS feature, auth flow, dashboard + analytics, API integration, data modeling, performance/a11y hardening, deployment + monitoring.
+- Steps may include 0–2 optional practices. Prefer fewer, higher-signal practices.
+- Coding challenges ONLY when (goal_intent is job OR internship) AND the target_role is software/engineering. Always optional. Max 5–10 total across the roadmap. Label as optional interview practice. Do not treat CtCI/LeetCode as the main FE interview path unless the JD is big-tech algorithm-heavy.
+- est_hours must be a number (decimals OK). Vary hours across steps and projects.
+- CRITICAL: Use web_search before generating resources. Copy-paste https URLs EXACTLY from search results. No shorteners. No invented links. If no strong result, omit the resource.
+- When the user prompt begins with "AI-proof module: ENABLED", add exactly one dedicated LAST phase on hireability with AI tools (verification, judgment, portfolio proof)—same phase/step/resource rules.
 - Output only the JSON object, nothing else.`;
 
 const WEB_SEARCH_TOOL = {
@@ -147,13 +157,17 @@ function buildUserPrompt(params: {
       ""
     );
   }
+  const budget = params.weekly_hours * params.time_horizon_weeks;
   lines.push(
     "IMPORTANT: You MUST use web_search before generating the roadmap.",
     "Process:",
     "1) Use web_search to gather high-signal resources for the exact target role and current hiring expectations.",
     "2) Build a roadmap with practical phase projects that simulate day-to-day job tasks.",
-    "3) Attach 1-2 resources per step using ONLY exact URLs from web_search sources.",
-    "4) Run a self-check: schema validity, role relevance, timeline realism, no invented URLs, no filler projects.",
+    "3) Attach 1-2 resources per step using ONLY https URLs from web_search sources (copy exactly).",
+    "4) Self-check: schema, market guidance, prior exposure, varied hours, timeline fit, no invented URLs, no filler projects.",
+    "",
+    "Market guidance (follow closely):",
+    ...getMarketGuidanceLines(params.target_role).map((l) => `- ${l}`),
     "",
     `Target role: ${params.target_role}`,
     ...(params.target_role_job_description?.trim()
@@ -162,6 +176,7 @@ function buildUserPrompt(params: {
     `Weekly hours available: ${params.weekly_hours}`,
     `Current level: ${params.current_level}`,
     `Time horizon (weeks): ${params.time_horizon_weeks}`,
+    `Hour budget: ~${budget} hours total (steps + phase projects). Stay within ±15%.`,
     `Goal: ${params.goal_intent.replace("_", " ")}`,
   );
   if (params.target_timeline_weeks != null) {
@@ -169,42 +184,22 @@ function buildUserPrompt(params: {
   }
   if (params.prior_exposure && params.prior_exposure.length > 0) {
     const exp = params.prior_exposure.filter((x) => x !== "none").join(", ") || "none";
-    lines.push(`Prior exposure: ${exp}. Skip or shorten early steps that cover these.`);
+    lines.push(
+      `Prior exposure (HARD CONSTRAINT): ${exp}.`,
+      "Do NOT open with fundamentals the user already knows. Skip those topics or fold into a brief refresh step (few hours). Spend early phases on gaps and job-level work."
+    );
   }
   if (params.learning_preference) {
     lines.push(`Learning preference: ${params.learning_preference.replace("_", " ")}. Prefer resources that match (e.g. video vs reading vs hands-on).`);
   }
   lines.push(
     "",
+    "Hour variety: est_hours and phase_project.estimated_time_hours must vary across the roadmap. Never make every step the same duration.",
     "Project rules: 1 main phase project per phase, purposeful and job-relevant. Optional practices: only if they clearly reinforce the step, max 0–2 per step, always optional.",
     "Interview challenges: ONLY if goal is job/internship AND role is software engineering. Max 5–10 challenges across the entire roadmap. Label as optional interview practice.",
-    "Timeline realism: keep total estimated hours aligned with weekly_hours * time_horizon_weeks (allow up to ~15% slack).",
-    "Pick the best resources for the current job market. Use only https links from web_search SOURCES; no shorteners. Output only the JSON matching the schema."
+    "Pick the best resources for the current job market. Output only the JSON matching the schema."
   );
   return lines.join("\n");
-}
-
-function normalizeSourceUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    parsed.hash = "";
-    const params = parsed.searchParams;
-    const keys = [...params.keys()];
-    for (const key of keys) {
-      if (
-        key.startsWith("utm_") ||
-        key === "ref" ||
-        key === "ref_src" ||
-        key === "source"
-      ) {
-        params.delete(key);
-      }
-    }
-    const normalized = parsed.toString();
-    return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
-  } catch {
-    return url.trim();
-  }
 }
 
 function normalizeProjectsAndPractices(params: {
@@ -271,76 +266,107 @@ function buildSourcesMap(output: Array<{ type: string; action?: { sources?: Arra
   return map;
 }
 
-type EnrichedResource = RoadmapResource & { verification_status: "verified" | "unverified" };
+type EnrichedResource = RoadmapResource & {
+  verification_status: "verified" | "unverified" | "fallback";
+};
 
+/**
+ * Keep only web_search-grounded https resources. Drop invented URLs.
+ * Matching: exact normalized URL, or same host as a search source (domain-grounded).
+ * Legacy hosts (e.g. reactjs.org) are rewritten before matching.
+ */
 function enforceGroundingAndValidation(
   parsed: RoadmapJson,
   sourcesMap: Map<string, SourceEntry>
 ): RoadmapJson {
-  const normalizedToSourceId = new Map<string, string>();
-  for (const [id, entry] of sourcesMap.entries()) {
-    normalizedToSourceId.set(normalizeSourceUrl(entry.url), id);
-  }
-
-  const findSourceIdForUrl = (url: string): string | null => {
-    return normalizedToSourceId.get(normalizeSourceUrl(url)) ?? null;
-  };
+  const { normalizedToSourceId, hostToSourceId } = buildGroundingIndexes(
+    [...sourcesMap.entries()].map(([id, entry]) => ({ id, url: entry.url }))
+  );
 
   const phases = parsed.phases.map((phase) => ({
     ...phase,
     steps: phase.steps.map((step) => {
-      // Keep all resources; only drop clearly invalid URLs (non-https, shorteners).
-      // If web_search didn't provide a match, keep the model's resource and mark unverified so the modal can show it.
-      const resources: EnrichedResource[] = step.resources
-        .map((r) => {
-          const validation = validateUrl(r.url);
-          if (validation.status === "invalid") {
-            return null; // Skip only invalid URLs (e.g. not https, shorteners)
-          }
+      const grounded: EnrichedResource[] = [];
+      for (const r of step.resources) {
+        const url = rewriteLegacyResourceUrl(r.url);
+        const validation = validateUrl(url);
+        if (validation.status === "invalid") continue;
 
-          const sourceId = findSourceIdForUrl(r.url);
-          const entry = sourceId ? sourcesMap.get(sourceId) : undefined;
-          const fromSearch = Boolean(entry && r.url === entry.url);
+        const sourceId = findSourceIdForUrl(
+          url,
+          normalizedToSourceId,
+          hostToSourceId
+        );
+        if (!sourceId) continue;
 
-          return {
-            ...r,
-            source_id: fromSearch ? (sourceId ?? r.source_id) : "",
-            verification_status:
-              fromSearch && validation.status === "valid"
-                ? ("verified" as const)
-                : ("unverified" as const),
-          };
-        })
-        .filter((r): r is EnrichedResource => r !== null)
+        grounded.push({
+          ...r,
+          url,
+          source_id: sourceId,
+          verification_status: "verified",
+        });
+      }
+
+      const resources = grounded
         .filter((resource, index, arr) => {
           const key = normalizeSourceUrl(resource.url);
-          return arr.findIndex((candidate) => normalizeSourceUrl(candidate.url) === key) === index;
+          return (
+            arr.findIndex((c) => normalizeSourceUrl(c.url) === key) === index
+          );
         })
         .slice(0, 2);
-      
+
       return { ...step, resources };
     }),
   }));
   return { ...parsed, phases };
 }
 
+/** Ensure every step has at least one trustworthy resource (search or curated fallback). */
+function ensureMinimumResources(
+  parsed: RoadmapJson,
+  targetRole: string
+): RoadmapJson {
+  const phases = parsed.phases.map((phase) => ({
+    ...phase,
+    steps: phase.steps.map((step) => {
+      if (step.resources.length > 0) return step;
+      const fb = getFallbackResource(step.title, step.description, targetRole);
+      const fallbackResource: EnrichedResource = {
+        title: fb.title,
+        url: fb.url,
+        publisher: fb.publisher,
+        resource_type: fb.resource_type,
+        is_free: true,
+        source_id: "fallback",
+        verification_status: "fallback",
+      };
+      return { ...step, resources: [fallbackResource] };
+    }),
+  }));
+  return { ...parsed, phases };
+}
+
+/** Drop unreachable URLs; leave empty for ensureMinimumResources to refill. */
 async function validateResourcesReachable(parsed: RoadmapJson): Promise<RoadmapJson> {
   const phases = await Promise.all(
     parsed.phases.map(async (phase) => ({
       ...phase,
       steps: await Promise.all(
-        phase.steps.map(async (step) => ({
-          ...step,
-          resources: await Promise.all(
-            step.resources.map(async (r) => {
-              const reach = await verifyUrlReachable(r.url);
-              if (reach.status === "unknown" && r.verification_status === "verified") {
-                return { ...r, verification_status: "unverified" as const };
-              }
-              return r;
-            })
-          ),
-        }))
+        phase.steps.map(async (step) => {
+          const kept: RoadmapResource[] = [];
+          for (const r of step.resources) {
+            if (r.verification_status === "fallback") {
+              kept.push(r);
+              continue;
+            }
+            const reach = await verifyUrlReachable(r.url);
+            if (reach.status === "valid" || reach.status === "unknown") {
+              kept.push(r);
+            }
+          }
+          return { ...step, resources: kept.slice(0, 2) };
+        })
       ),
     }))
   );
@@ -354,8 +380,15 @@ function enforceRoadmapQuality(
   const budgetHours = Math.max(1, params.weeklyHours * params.timeHorizonWeeks);
   const maxAllowed = budgetHours * 1.15;
 
+  const diversified = diversifyPhaseHours(parsed.phases);
+
   let totalHours = 0;
-  const phases = parsed.phases.map((phase, phaseIndex) => {
+  const phases = diversified.map((phase, phaseIndex) => {
+    const projectHours = Number.isFinite(phase.phase_project.estimated_time_hours)
+      ? Math.min(Math.max(phase.phase_project.estimated_time_hours, 1), budgetHours)
+      : 8;
+    totalHours += projectHours;
+
     const steps = phase.steps.map((step, stepIndex) => {
       const safeHours = Number.isFinite(step.est_hours)
         ? Math.min(Math.max(step.est_hours, 1), budgetHours)
@@ -371,6 +404,10 @@ function enforceRoadmapQuality(
     return {
       ...phase,
       phase_order: phaseIndex + 1,
+      phase_project: {
+        ...phase.phase_project,
+        estimated_time_hours: projectHours,
+      },
       steps,
     };
   });
@@ -382,6 +419,13 @@ function enforceRoadmapQuality(
   const scale = maxAllowed / totalHours;
   const scaledPhases = phases.map((phase) => ({
     ...phase,
+    phase_project: {
+      ...phase.phase_project,
+      estimated_time_hours: Math.max(
+        1,
+        Number((phase.phase_project.estimated_time_hours * scale).toFixed(1))
+      ),
+    },
     steps: phase.steps.map((step) => ({
       ...step,
       est_hours: Math.max(1, Number((step.est_hours * scale).toFixed(1))),
@@ -389,6 +433,31 @@ function enforceRoadmapQuality(
   }));
 
   return { ...parsed, phases: scaledPhases };
+}
+
+async function postProcessRoadmap(
+  data: RoadmapJson,
+  sourcesMap: Map<string, SourceEntry>,
+  input: {
+    goal_intent: string;
+    target_role: string;
+    weekly_hours: number;
+    time_horizon_weeks: number;
+  }
+): Promise<RoadmapJson> {
+  let roadmap = normalizeProjectsAndPractices({
+    roadmap: data,
+    goalIntent: input.goal_intent,
+    targetRole: input.target_role,
+  });
+  roadmap = enforceGroundingAndValidation(roadmap, sourcesMap);
+  roadmap = await validateResourcesReachable(roadmap);
+  roadmap = ensureMinimumResources(roadmap, input.target_role);
+  roadmap = enforceRoadmapQuality(roadmap, {
+    weeklyHours: input.weekly_hours,
+    timeHorizonWeeks: input.time_horizon_weeks,
+  });
+  return roadmap;
 }
 
 const PRO_ROADMAP_LIMIT = 5;
@@ -515,6 +584,13 @@ export async function generateRoadmap(
       };
     }
 
+    const rate = await assertLlmGenerationAllowed(userId);
+    if (!rate.ok) {
+      return { ok: false, error: rate.error };
+    }
+
+    void trackProductEvent(userId, "roadmap_generate_started");
+
     const apiKey = getEnv().OPENAI_API_KEY;
     if (!apiKey) {
       return { ok: false, error: "OpenAI is not configured." };
@@ -528,8 +604,8 @@ export async function generateRoadmap(
       learning_preference: input.data.learning_preference ?? null,
       target_role_job_description: input.data.target_role_job_description ?? null,
     });
-    // Use gpt-4o-mini which has better token limits and JSON handling
-    const model = "gpt-4.1-mini";
+    // Prefer higher-quality model for hire-ready roadmap substance
+    const model = "gpt-4.1";
 
     // Retry logic for truncated responses
     let response;
@@ -627,10 +703,43 @@ export async function generateRoadmap(
     }
 
     const parseResult = roadmapJsonSchema.safeParse(parsed);
-    if (!parseResult.success) {
-      const errMsg = parseResult.error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("\n");
+    let roadmapData = parseResult.success ? parseResult.data : null;
+
+    if (!roadmapData) {
+      const errMsg =
+        parseResult.error?.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("\n") ?? "Schema validation failed";
+      try {
+        const correction = await openai.responses.parse({
+          model,
+          instructions: `${SYSTEM_PROMPT}\n\nYour previous JSON failed schema validation. Fix EVERY issue and return valid JSON only.`,
+          input: `${userPrompt}\n\nSchema errors to fix:\n${errMsg}\n\nPrevious JSON (fix it):\n${JSON.stringify(parsed).slice(0, 12000)}`,
+          tools: [WEB_SEARCH_TOOL],
+          tool_choice: "required",
+          include: ["web_search_call.action.sources"],
+          text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
+          temperature: 0.2,
+          max_output_tokens: 16000,
+        });
+        if (correction.output_parsed) {
+          const corrected = roadmapJsonSchema.safeParse(correction.output_parsed);
+          if (corrected.success) {
+            roadmapData = corrected.data;
+            response = correction;
+          }
+        }
+      } catch (corrErr) {
+        void logError("roadmap-generation-correction", corrErr, { userId, errMsg });
+      }
+    }
+
+    if (!roadmapData) {
+      const errMsg = !parseResult.success
+        ? parseResult.error.issues
+            .map((i) => `${i.path.join(".")}: ${i.message}`)
+            .join("\n")
+        : "unknown";
       void logError("roadmap-generation", new Error("Schema validation failed"), {
         userId,
         errMsg,
@@ -648,28 +757,16 @@ export async function generateRoadmap(
     const sourcesMap = buildSourcesMap(
       response.output as Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>
     );
-    
-    // Log sources for debugging
+
     if (process.env.NODE_ENV !== "production") {
-      const sourcesCount = sourcesMap.size;
-      const sourcesList = Array.from(sourcesMap.entries()).map(([id, entry]) => `${id}: ${entry.url}`);
-      console.log(`[generateRoadmap] Found ${sourcesCount} web_search sources:`, sourcesList);
-      if (sourcesCount === 0) {
-        console.warn("[generateRoadmap] WARNING: No web_search sources found. Check if model used web_search tool.");
-        console.log("[generateRoadmap] Response output types:", response.output?.map((o: { type: string }) => o.type));
-      }
+      console.log(`[generateRoadmap] web_search sources: ${sourcesMap.size}`);
     }
-    
-    let roadmap = normalizeProjectsAndPractices({
-      roadmap: parseResult.data,
-      goalIntent: input.data.goal_intent,
-      targetRole: input.data.target_role,
-    });
-    roadmap = enforceGroundingAndValidation(roadmap, sourcesMap);
-    roadmap = await validateResourcesReachable(roadmap);
-    roadmap = enforceRoadmapQuality(roadmap, {
-      weeklyHours: input.data.weekly_hours,
-      timeHorizonWeeks: input.data.time_horizon_weeks,
+
+    const roadmap = await postProcessRoadmap(roadmapData, sourcesMap, {
+      goal_intent: input.data.goal_intent,
+      target_role: input.data.target_role,
+      weekly_hours: input.data.weekly_hours,
+      time_horizon_weeks: input.data.time_horizon_weeks,
     });
 
     const roadmapId = await createRoadmapFromJson(userId, roadmap, model);
@@ -721,12 +818,17 @@ export async function regenerateRoadmap(
   const { userId } = await requireUserAndProfile();
 
   try {
+    const entitlements = await getEntitlements(userId);
+    const maxRegens = getRegenLimitForPlan(entitlements.isPro);
     const regCount = await getRoadmapRegenerationCount(userId, roadmapId);
     if (regCount === null) {
       return { ok: false, error: "Roadmap not found or access denied." };
     }
-    if (regCount >= 1) {
-      return { ok: false, error: "You have already used your 1 regeneration for this roadmap." };
+    if (regCount >= maxRegens) {
+      return {
+        ok: false,
+        error: `You have already used your ${maxRegens} regeneration${maxRegens === 1 ? "" : "s"} for this roadmap.`,
+      };
     }
 
     const customInput = parseFormDataToInput(formData);
@@ -751,6 +853,13 @@ export async function regenerateRoadmap(
       return { ok: false, error: "Invalid input. Check target role and weekly hours." };
     }
 
+    const rate = await assertLlmGenerationAllowed(userId);
+    if (!rate.ok) {
+      return { ok: false, error: rate.error };
+    }
+
+    void trackProductEvent(userId, "roadmap_regenerate_started");
+
     const apiKey = getEnv().OPENAI_API_KEY;
     if (!apiKey) {
       return { ok: false, error: "OpenAI is not configured." };
@@ -765,7 +874,7 @@ export async function regenerateRoadmap(
       target_role_job_description: input.data.target_role_job_description ?? null,
       include_ai_proof_module: input.data.include_ai_proof_module,
     });
-    const model = "gpt-4.1-mini";
+    const model = "gpt-4.1";
 
     type ParseResponse = Awaited<ReturnType<typeof openai.responses.parse>>;
     let response: ParseResponse | undefined;
@@ -828,7 +937,38 @@ export async function regenerateRoadmap(
     }
 
     const parseResult = roadmapJsonSchema.safeParse(parsed);
-    if (!parseResult.success) {
+    let roadmapData = parseResult.success ? parseResult.data : null;
+
+    if (!roadmapData) {
+      const errMsg =
+        parseResult.error?.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("\n") ?? "Schema validation failed";
+      try {
+        const correction = await openai.responses.parse({
+          model,
+          instructions: `${SYSTEM_PROMPT}\n\nYour previous JSON failed schema validation. Fix EVERY issue and return valid JSON only.`,
+          input: `${userPrompt}\n\nSchema errors to fix:\n${errMsg}\n\nPrevious JSON (fix it):\n${JSON.stringify(parsed).slice(0, 12000)}`,
+          tools: [WEB_SEARCH_TOOL],
+          tool_choice: "required",
+          include: ["web_search_call.action.sources"],
+          text: { format: zodTextFormat(roadmapJsonSchema, "roadmap") },
+          temperature: 0.2,
+          max_output_tokens: 16000,
+        });
+        if (correction.output_parsed) {
+          const corrected = roadmapJsonSchema.safeParse(correction.output_parsed);
+          if (corrected.success) {
+            roadmapData = corrected.data;
+            response = correction;
+          }
+        }
+      } catch (corrErr) {
+        void logError("roadmap-regeneration-correction", corrErr, { userId, roadmapId });
+      }
+    }
+
+    if (!roadmapData) {
       void logError("roadmap-regeneration", new Error("Schema validation failed"), {
         userId,
         roadmapId,
@@ -840,19 +980,14 @@ export async function regenerateRoadmap(
       (response.output ?? []) as Array<{ type: string; action?: { sources?: Array<{ url: string }> } }>
     );
 
-    let roadmap = normalizeProjectsAndPractices({
-      roadmap: parseResult.data,
-      goalIntent: input.data.goal_intent,
-      targetRole: input.data.target_role,
-    });
-    roadmap = enforceGroundingAndValidation(roadmap, sourcesMap);
-    roadmap = await validateResourcesReachable(roadmap);
-    roadmap = enforceRoadmapQuality(roadmap, {
-      weeklyHours: input.data.weekly_hours,
-      timeHorizonWeeks: input.data.time_horizon_weeks,
+    const roadmap = await postProcessRoadmap(roadmapData, sourcesMap, {
+      goal_intent: input.data.goal_intent,
+      target_role: input.data.target_role,
+      weekly_hours: input.data.weekly_hours,
+      time_horizon_weeks: input.data.time_horizon_weeks,
     });
 
-    await replaceRoadmapFromJson(userId, roadmapId, roadmap, model);
+    await replaceRoadmapFromJson(userId, roadmapId, roadmap, model, maxRegens);
     return { ok: true, roadmapId };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

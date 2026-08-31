@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckoutCtas } from "@/components/billing/CheckoutCtas";
 
 export function LockBanner() {
   return (
@@ -11,14 +10,7 @@ export function LockBanner() {
       <span className="text-muted-foreground">
         Free includes Phase 1. Get Roadmap Unlock (one-time) for all phases, or Pro for full access plus tracking and insights.
       </span>
-      <div className="flex flex-wrap gap-2 ml-auto">
-        <Button variant="secondary" size="sm" asChild>
-          <Link href="/settings">Unlock roadmap access</Link>
-        </Button>
-        <Button size="sm" asChild>
-          <Link href="/settings">Upgrade to Pro</Link>
-        </Button>
-      </div>
+      <CheckoutCtas className="ml-auto" />
     </div>
   );
 }

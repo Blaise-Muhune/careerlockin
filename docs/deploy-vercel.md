@@ -32,7 +32,7 @@ At least one of `NEXT_PUBLIC_SITE_URL` or `NEXT_PUBLIC_APP_URL` must be set. For
 | Name | Purpose |
 |------|---------|
 | `RESEND_API_KEY` | Resend API key for emails |
-| `EMAIL_FROM_ADDRESS` | From address (e.g. `CareerLockin <noreply@careerlockin.com>`) |
+| `EMAIL_FROM_ADDRESS` | From address (e.g. `CareerLockin <careerlockinsupport@zingocorp.space>`) |
 | `CRON_SECRET` | Secret for protecting cron routes (e.g. Vercel Cron) |
 | `ADMIN_PRO_MONTHLY_CENTS` | Cents per Pro sub per month for MRR (e.g. `999`) |
 | `GOOGLE_SITE_VERIFICATION` | Google Search Console verification |
@@ -76,8 +76,11 @@ Package: `@sentry/nextjs` (see package.json). Used for server, client, and edge 
 
 3. **Events to send** (recommended):
    - `checkout.session.completed`
+   - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
+   - `invoice.paid`
+   - `invoice.payment_failed`
    - `charge.refunded`
 
 4. After creating the endpoint, open it and reveal the **Signing secret** (`whsec_...`). Copy it into `STRIPE_WEBHOOK_SECRET` in Vercel.

@@ -42,11 +42,13 @@ export async function startStepAction(
       getEntitlements(userId),
       getPhaseIndexForStep(parsed.data.step_id),
     ]);
-    const canTrackThisPhase = phaseIndex === 0 || entitlements.isPro;
+    const canTrackThisPhase =
+      phaseIndex === 0 || entitlements.canTrackAllPhases;
     if (!canTrackThisPhase) {
       return {
         ok: false,
-        error: "Upgrade to Pro to track phases beyond Phase 1.",
+        error:
+          "Unlock the full roadmap or upgrade to Pro to track phases beyond Phase 1.",
       };
     }
 

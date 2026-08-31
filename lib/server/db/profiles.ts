@@ -120,3 +120,37 @@ export async function updateEmailPrefs(
 
   if (error) throw new Error(error.message);
 }
+
+export type ProfileForSettings = ProfileForRoadmapEdit & {
+  full_name: string | null;
+};
+
+/**
+ * Returns profile fields for the Settings edit form.
+ */
+export async function getProfileForSettings(
+  userId: string
+): Promise<ProfileForSettings | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select(
+      "full_name, target_role, target_role_job_description, weekly_hours, current_level, goal_intent, target_timeline_weeks, prior_exposure, learning_preference"
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    full_name: (data.full_name as string | null) ?? null,
+    target_role: (data.target_role as string) ?? "",
+    target_role_job_description:
+      (data.target_role_job_description as string | null) ?? null,
+    weekly_hours: (data.weekly_hours as number) ?? 10,
+    current_level: (data.current_level as string | null) ?? null,
+    goal_intent: (data.goal_intent as string | null) ?? null,
+    target_timeline_weeks: (data.target_timeline_weeks as number | null) ?? null,
+    prior_exposure: (data.prior_exposure as string[] | null) ?? null,
+    learning_preference: (data.learning_preference as string | null) ?? null,
+  };
+}

@@ -4,7 +4,8 @@ import {
   getSubscriptionDetails,
   getProEndedForBanner,
 } from "@/lib/server/billing/entitlements";
-import { getEmailPrefs } from "@/lib/server/db/profiles";
+import { getEmailPrefs, getProfileForSettings } from "@/lib/server/db/profiles";
+import { listRoadmapsForUser } from "@/lib/server/db/roadmaps";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   PlanBadge,
@@ -26,6 +27,9 @@ import { EmailPrefsSection } from "./email-prefs-section";
 import { EmailPrefsProOnly } from "./email-prefs-pro-only";
 import { PurchaseSuccessRevalidate } from "./purchase-success-revalidate";
 import { SettingsAlerts } from "./settings-alerts";
+import { ProfileEditForm } from "./profile-edit-form";
+import { DeleteRoadmapSection } from "./delete-roadmap-section";
+import { DeleteAccountSection } from "./delete-account-section";
 
 type SettingsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -52,13 +56,21 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const source =
     typeof params.source === "string" ? params.source : null;
 
-  const [entitlements, emailPrefs, subscriptionDetails, proEnded] =
-    await Promise.all([
-      getEntitlements(userId),
-      getEmailPrefs(userId),
-      getSubscriptionDetails(userId),
-      getProEndedForBanner(userId),
-    ]);
+  const [
+    entitlements,
+    emailPrefs,
+    subscriptionDetails,
+    proEnded,
+    profile,
+    roadmaps,
+  ] = await Promise.all([
+    getEntitlements(userId),
+    getEmailPrefs(userId),
+    getSubscriptionDetails(userId),
+    getProEndedForBanner(userId),
+    getProfileForSettings(userId),
+    listRoadmapsForUser(userId),
+  ]);
 
   const badgeVariant = planBadgeVariantFromEntitlements(entitlements);
   const summary = entitlementSummaryFromEntitlements(entitlements);
@@ -103,6 +115,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </CardContent>
         </Card>
       </section>
+      {profile && <ProfileEditForm profile={profile} />}
+      <DeleteRoadmapSection roadmaps={roadmaps} />
       {entitlements.isPro && (
         <CreateNewRoadmapLink userId={userId} />
       )}
@@ -115,6 +129,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         entitlements={entitlements}
         cancelAtPeriodEnd={hasCancelAtPeriodEnd}
       />
+      <DeleteAccountSection />
     </div>
   );
 }

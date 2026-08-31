@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
 import {
@@ -19,9 +18,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CheckoutCtas } from "@/components/billing/CheckoutCtas";
+import { MessageDraftCard } from "@/components/networking/MessageDraftCard";
 import { startStepAction } from "@/app/actions/startStep";
 import { setWorkStatusAction } from "@/app/actions/setWorkStatus";
 import { toggleStep } from "@/app/actions/toggleStep";
+import type { MessageDraft } from "@/lib/networking/draftTypes";
 import type { RoadmapWithSteps } from "@/lib/server/db/roadmaps";
 import type { CurrentWorkStatus } from "@/lib/server/db/currentWork";
 import { cn } from "@/lib/utils";
@@ -140,12 +142,7 @@ type StepDetailModalProps = {
   roadmapId: string;
   phaseTitle: string;
   networkingFocus?: string | null;
-  messageOutlines?: Array<{
-    purpose: "ask_for_advice" | "ask_for_referral" | "request_coffee_chat";
-    subject_line: string;
-    outline_points: string[];
-    personalization_required_note: string;
-  }>;
+  messageDrafts?: MessageDraft[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canUseTracking?: boolean;
@@ -160,7 +157,7 @@ export function StepDetailModal({
   roadmapId,
   phaseTitle,
   networkingFocus = null,
-  messageOutlines = [],
+  messageDrafts = [],
   open,
   onOpenChange,
   canUseTracking = true,
@@ -169,7 +166,6 @@ export function StepDetailModal({
   const router = useRouter();
   const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   if (!step) return null;
   const stepData = step;
@@ -177,60 +173,6 @@ export function StepDetailModal({
   const status = stepStatus(isDone, isCurrent, currentStatus);
   const phaseProject = parsePhaseProject(stepData.phase_project);
   const practices = parsePractices(stepData.practices);
-
-  function copyToClipboardFallback(text: string): boolean {
-    if (typeof document === "undefined") return false;
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.setAttribute("readonly", "");
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      const ok = document.execCommand("copy");
-      document.body.removeChild(textarea);
-      return ok;
-    } catch {
-      document.body.removeChild(textarea);
-      return false;
-    }
-  }
-
-  async function copyOutlineText(
-    outline: {
-      subject_line: string;
-      outline_points: string[];
-      personalization_required_note: string;
-    },
-    key: string
-  ) {
-    const text = [
-      `Subject: ${outline.subject_line}`,
-      "",
-      ...outline.outline_points.map((p) => `- ${p}`),
-      "",
-      `Note: ${outline.personalization_required_note}`,
-      "",
-      "Rewrite in your own words. Keep it short and personal.",
-    ].join("\n");
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        copyToClipboardFallback(text);
-      }
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 2000);
-    } catch {
-      const ok = copyToClipboardFallback(text);
-      if (ok) {
-        setCopiedKey(key);
-        setTimeout(() => setCopiedKey(null), 2000);
-      }
-    }
-  }
 
   async function handleStartStep() {
     setActionError(null);
@@ -300,7 +242,7 @@ export function StepDetailModal({
     }
   }
 
-  const hasNetworking = Boolean(networkingFocus || messageOutlines.length > 0);
+  const hasNetworking = Boolean(networkingFocus || messageDrafts.length > 0);
   const hasApply = Boolean(phaseProject || practices.length > 0);
   // Start collapsed so title + description + resources are the focus
   const defaultAccordion = undefined;
@@ -378,6 +320,16 @@ export function StepDetailModal({
                       >
                         {r.is_free ? "Free" : "Paid"}
                       </span>
+                      {r.verification_status === "verified" && (
+                        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide rounded px-1.5 py-0.5 bg-primary/15 text-primary">
+                          Verified
+                        </span>
+                      )}
+                      {r.verification_status === "fallback" && (
+                        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
+                          Curated
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -471,35 +423,14 @@ export function StepDetailModal({
                     {networkingFocus && (
                       <p className="text-sm text-muted-foreground mb-3">{networkingFocus}</p>
                     )}
-                    {messageOutlines.length > 0 && (
+                    {messageDrafts.length > 0 && (
                       <div className="space-y-3">
                         <p className="text-xs text-muted-foreground">
-                          Rewrite in your own words. Keep it short and personal.
+                          Copy the message, fill the [brackets], then send. Keep it short.
                         </p>
-                        {messageOutlines.map((o) => {
-                          const outlineKey = `${o.purpose}:${o.subject_line}`;
-                          return (
-                          <div key={outlineKey} className="rounded-xl border border-border/50 bg-muted/10 p-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-sm font-medium text-foreground min-w-0">{o.subject_line}</p>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => copyOutlineText(o, outlineKey)}
-                                className="shrink-0 min-w-18"
-                              >
-                                {copiedKey === outlineKey ? "Copied!" : "Copy"}
-                              </Button>
-                            </div>
-                            <ul className="mt-2 list-disc pl-4 space-y-0.5 text-xs text-muted-foreground">
-                              {o.outline_points.slice(0, 4).map((p) => (
-                                <li key={p}>{p}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          );
-                        })}
+                        {messageDrafts.map((d) => (
+                          <MessageDraftCard key={d.id} draft={d} />
+                        ))}
                       </div>
                     )}
                   </AccordionContent>
@@ -522,17 +453,16 @@ export function StepDetailModal({
               >
                 Close
               </Button>
-              <Button size="sm" asChild className="min-h-[44px] touch-manipulation">
-                <Link href="/settings">Unlock roadmap access</Link>
-              </Button>
-              <Button size="sm" variant="outline" asChild className="min-h-[44px] touch-manipulation">
-                <Link href="/settings">Upgrade to Pro</Link>
-              </Button>
+              <CheckoutCtas
+                unlockVariant="default"
+                proVariant="outline"
+                buttonClassName="min-h-[44px] touch-manipulation"
+              />
             </>
           )}
           {!isLockedView && !canUseTracking && (
             <p className="text-sm text-muted-foreground w-full">
-              Pro unlocks tracking.
+              Unlock the full roadmap or upgrade to Pro to track this phase.
             </p>
           )}
           {!isLockedView && canUseTracking && status !== "done" && (

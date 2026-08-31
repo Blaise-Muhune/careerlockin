@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,36 +17,25 @@ async function submitGenerateFromProfile(
 export function GenerateRoadmapButton() {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(submitGenerateFromProfile, null);
-  const [clientError, setClientError] = useState<string | null>(null);
 
   useEffect(() => {
     if (state?.ok) {
-      setClientError(null);
       router.push("/roadmap");
-      return;
-    }
-    if (state && !state.ok) {
-      setClientError(state.error);
-      if (process.env.NODE_ENV !== "production") {
-        console.error("[generateRoadmap] error:", state.error);
-      }
     }
   }, [state, router]);
+
+  const clientError = state && !state.ok ? state.error : null;
 
   return (
     <>
       {isPending && <RoadmapGeneratingOverlay />}
-      <form
-        action={formAction}
-        className="flex flex-col gap-4"
-        onSubmit={() => setClientError(null)}
-      >
+      <form action={formAction} className="flex flex-col gap-4">
         <div className="rounded-lg border border-border bg-card/40 p-4">
           <div className="flex gap-3">
             <ShieldCheck className="size-5 shrink-0 text-primary mt-0.5" aria-hidden />
             <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">AI-proof module</span>
+                <span className="text-sm font-semibold text-foreground">Hireability module</span>
                 <span className="text-xs font-medium text-muted-foreground">Optional</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">

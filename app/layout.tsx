@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RegisterSW } from "@/components/pwa/RegisterSW";
+import { Analytics } from "@vercel/analytics/next";
 import {
   siteName,
   siteUrl,
@@ -90,6 +91,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <RegisterSW />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>

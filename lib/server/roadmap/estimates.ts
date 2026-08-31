@@ -1,4 +1,3 @@
-import "server-only";
 import type { RoadmapWithSteps } from "@/lib/server/db/roadmaps";
 
 export type PhaseEstimate = {
@@ -17,39 +16,58 @@ function stepHours(estHours: number | null): number {
   return estHours != null && Number.isFinite(estHours) ? Number(estHours) : 0;
 }
 
+function phaseProjectHours(phaseProject: unknown): number {
+  if (!phaseProject || typeof phaseProject !== "object") return 0;
+  const hours = (phaseProject as { estimated_time_hours?: unknown })
+    .estimated_time_hours;
+  return typeof hours === "number" && Number.isFinite(hours) ? hours : 0;
+}
+
 /**
- * Returns per-phase estimates: hours (sum of est_hours in phase) and weeks (hours / weeklyHours).
- * weeklyHours must be > 0; if 0, weeks is 0 for all phases.
+ * Per-phase estimates: step hours + phase project hours, weeks = hours / weeklyHours.
  */
 export function calculatePhaseEstimates(
   roadmap: RoadmapWithSteps,
   weeklyHours: number
 ): PhaseEstimate[] {
   const byPhase = new Map<string, number>();
+  const projectByPhase = new Map<string, number>();
+
   for (const step of roadmap.steps) {
     const h = stepHours(step.est_hours);
     byPhase.set(step.phase, (byPhase.get(step.phase) ?? 0) + h);
+    if (step.phase_project != null && !projectByPhase.has(step.phase)) {
+      projectByPhase.set(step.phase, phaseProjectHours(step.phase_project));
+    }
   }
+
   const divisor = weeklyHours > 0 ? weeklyHours : 1;
-  return Array.from(byPhase.entries()).map(([phase, hours]) => ({
-    phase,
-    hours,
-    weeks: hours / divisor,
-  }));
+  return Array.from(byPhase.entries()).map(([phase, stepHrs]) => {
+    const hours = stepHrs + (projectByPhase.get(phase) ?? 0);
+    return {
+      phase,
+      hours,
+      weeks: hours / divisor,
+    };
+  });
 }
 
 /**
- * Returns total roadmap estimate: sum of all step est_hours and total weeks (totalHours / weeklyHours).
- * weeklyHours must be > 0; if 0, totalWeeks is 0.
+ * Total roadmap estimate including phase projects.
  */
 export function calculateRoadmapTotal(
   roadmap: RoadmapWithSteps,
   weeklyHours: number
 ): RoadmapTotalEstimate {
-  const totalHours = roadmap.steps.reduce(
-    (s, step) => s + stepHours(step.est_hours),
-    0
-  );
+  let totalHours = 0;
+  const seenProjects = new Set<string>();
+  for (const step of roadmap.steps) {
+    totalHours += stepHours(step.est_hours);
+    if (step.phase_project != null && !seenProjects.has(step.phase)) {
+      seenProjects.add(step.phase);
+      totalHours += phaseProjectHours(step.phase_project);
+    }
+  }
   const totalWeeks = weeklyHours > 0 ? totalHours / weeklyHours : 0;
   return { totalHours, totalWeeks };
 }
@@ -60,8 +78,8 @@ export type PhaseProgress = {
 };
 
 /**
- * Returns total hours and completed hours (by est_hours of done steps) for the given phase.
- * Used to show "how far through the phase" when current_work is in that phase.
+ * Phase hours include the phase project once. Completed hours count done steps
+ * plus the project when all steps in the phase are done.
  */
 export function getPhaseProgress(
   roadmap: RoadmapWithSteps,
@@ -70,11 +88,28 @@ export function getPhaseProgress(
 ): PhaseProgress {
   let phaseHours = 0;
   let phaseCompletedHours = 0;
+  let projectHours = 0;
+  let stepCount = 0;
+  let doneCount = 0;
+
   for (const step of roadmap.steps) {
     if (step.phase !== phaseTitle) continue;
     const h = stepHours(step.est_hours);
     phaseHours += h;
-    if (progressMap[step.id]?.is_done) phaseCompletedHours += h;
+    stepCount += 1;
+    if (progressMap[step.id]?.is_done) {
+      phaseCompletedHours += h;
+      doneCount += 1;
+    }
+    if (step.phase_project != null && projectHours === 0) {
+      projectHours = phaseProjectHours(step.phase_project);
+    }
   }
+
+  phaseHours += projectHours;
+  if (stepCount > 0 && doneCount === stepCount) {
+    phaseCompletedHours += projectHours;
+  }
+
   return { phaseHours, phaseCompletedHours };
 }

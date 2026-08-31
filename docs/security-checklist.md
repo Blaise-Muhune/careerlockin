@@ -8,7 +8,7 @@ Verify each user-facing table has RLS enabled and policies that enforce ownershi
 
 | Table | RLS | Policies enforce |
 |-------|-----|------------------|
-| **profiles** | ✓ | `user_id = auth.uid()` for select/insert/update/delete |
+| **profiles** | ✓ | `user_id = auth.uid()` for select/insert/update/delete; **`is_admin` changes blocked** for authenticated/anon via trigger `protect_profiles_is_admin` |
 | **roadmaps** | ✓ | `user_id = auth.uid()` for select/insert/update/delete |
 | **roadmap_steps** | ✓ | Access only via a roadmap owned by `auth.uid()` (join to `roadmaps`) |
 | **resources** | ✓ | Access only via step → roadmap owned by `auth.uid()` |

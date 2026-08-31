@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/card";
 import { getAuthState, requireUser } from "@/lib/server/auth";
 import { getEntitlements } from "@/lib/server/billing/entitlements";
+import { getLatestRoadmapForUser } from "@/lib/server/db/roadmaps";
 import { redirect } from "next/navigation";
+import { GenerateRoadmapButton } from "@/app/(app)/dashboard/generate-roadmap-button";
 
 export const metadata: Metadata = {
   title: "Welcome",
@@ -24,8 +26,16 @@ export default async function OnboardingWelcomePage() {
     redirect("/onboarding");
   }
 
-  const entitlements = await getEntitlements(state.user.id);
+  const [entitlements, latestRoadmap] = await Promise.all([
+    getEntitlements(state.user.id),
+    getLatestRoadmapForUser(state.user.id),
+  ]);
   const hasPaid = entitlements.isPro || entitlements.hasRoadmapUnlock;
+  const hasRoadmap = latestRoadmap != null;
+
+  if (hasRoadmap) {
+    redirect("/dashboard");
+  }
 
   return (
     <div className="flex flex-col items-center gap-8 py-6 sm:py-10 max-w-lg mx-auto w-full">
@@ -35,42 +45,42 @@ export default async function OnboardingWelcomePage() {
             {hasPaid ? "You're all set" : "Profile saved"}
           </CardTitle>
           <CardDescription className="text-base">
-            {hasPaid
-              ? "Head to your dashboard to view your roadmap and track progress."
-              : "Next: your dashboard and roadmap. Before you go—optional upgrades if you want the full plan or Pro tracking."}
+            Next step: generate your free Phase 1 roadmap from your profile. It
+            usually takes about a minute.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-6">
+          <GenerateRoadmapButton />
           {!hasPaid && (
             <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-4 space-y-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Optional upgrades</p>
               <ul className="list-disc pl-4 space-y-1.5">
                 <li>
-                  <strong className="text-foreground">Roadmap Unlock ($29.99 one-time)</strong> —
-                  all phases, steps, and resources for your roadmap.
+                  <strong className="text-foreground">Roadmap Unlock</strong> —
+                  all phases plus step tracking (one-time).
                 </li>
                 <li>
-                  <strong className="text-foreground">Pro ($9.99/mo)</strong> — full roadmap plus
-                  tracking in every phase, time logs, charts, and more roadmaps.
+                  <strong className="text-foreground">Pro</strong> — time logs,
+                  charts, recap emails, and more roadmaps.
                 </li>
               </ul>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/pricing">Compare plans</Link>
                 </Button>
-                <Button asChild size="sm">
+                <Button asChild size="sm" variant="outline">
                   <Link href="/settings">Upgrade in Settings</Link>
                 </Button>
               </div>
               <p className="text-xs pt-1">
-                Skip this anytime—your free roadmap (Phase 1) is ready on the dashboard.
+                You can upgrade anytime after creating your free Phase 1 roadmap.
               </p>
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex flex-col gap-2 sm:flex-row sm:justify-stretch">
-          <Button asChild className="w-full min-h-[44px] touch-manipulation">
-            <Link href="/dashboard">Continue to dashboard</Link>
+        <CardFooter className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="ghost" className="w-full min-h-[44px]">
+            <Link href="/dashboard">Skip to dashboard</Link>
           </Button>
         </CardFooter>
       </Card>

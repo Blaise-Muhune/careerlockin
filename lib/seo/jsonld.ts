@@ -95,7 +95,7 @@ export const defaultFaqItems: FaqItem[] = [
   {
     question: "What is the one-time unlock vs Pro subscription?",
     answer:
-      "One-time unlock ($29.99) gives full roadmap details, all phases and steps, verified resources, and lifetime access. Pro ($9.99/month) adds progress tracking, time logs, insights, charts, and roadmap updates if goals change.",
+      "One-time unlock ($29.99) gives full roadmap details, all phases and steps, search-grounded resources, and lifetime access. Pro ($9.99/month) adds time logs, insights, charts, and more regenerations.",
   },
   {
     question: "How is the roadmap generated and personalized?",

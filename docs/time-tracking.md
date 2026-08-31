@@ -1,6 +1,6 @@
 # Time tracking
 
-Time tracking is built from **default weekly hours** (profile) and **daily time logs** (`time_logs`). Each time log can have an optional note. **Recent check-ins** shows past weeks from `weekly_checkins` (legacy snapshots); new weeks are not written unless another flow populates them.
+Time tracking is built from **default weekly hours** (profile) and **daily time logs** (`time_logs`). Each time log can have an optional note. The **weekly_checkins** table is legacy-only; the dashboard no longer shows a Recent check-ins list.
 
 ---
 
@@ -39,7 +39,7 @@ Users add time whenever they work: date, minutes, and an optional note. There is
 ## Weekly sums (completed hours)
 
 - **Current week:** Completed hours = `SUM(time_logs.minutes) / 60` for the current week (Monday–Sunday in America/Detroit). Computed on the server when rendering the dashboard.
-- **Past weeks:** “Recent check-ins” reads from `weekly_checkins` (weeks that were previously saved). Notes are per time log; there is no separate “week notes” flow.
+- **Past weeks:** No separate check-in UI; historical hours live in `time_logs` (and optionally legacy `weekly_checkins` rows). Notes are per time log.
 
 ---
 

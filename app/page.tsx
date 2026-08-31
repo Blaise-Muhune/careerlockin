@@ -52,7 +52,7 @@ export default async function Home() {
           We build you a personalized roadmap from your goal and weekly hours—phases, steps, real resources, and time estimates. No guessing. No overload.
         </p>
         <p className="text-sm text-muted-foreground mt-3 max-w-lg mx-auto">
-          Personalized with AI · Verified resources · Your pace
+          Personalized with AI · Search-grounded resources · Your pace
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
           <Button asChild size="lg" className="min-h-11 px-8">
@@ -75,7 +75,7 @@ export default async function Home() {
           Your roadmap, built for you
         </h2>
         <p className="text-muted-foreground text-center max-w-xl mx-auto mb-10 text-base">
-          Phases, steps, verified resources, and time estimates—the same experience you get in the app.
+          Phases, steps, search-grounded resources, and honest time estimates—the same experience you get in the app.
         </p>
         <div className="w-full min-w-0 px-0 sm:px-4">
           <RoadmapPreviewMock />
@@ -134,7 +134,7 @@ export default async function Home() {
           Start free. Unlock when you’re ready.
         </h2>
         <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12 text-base">
-          One roadmap, full Phase 1, and a preview of the rest—free. Unlock the full plan once, or go Pro for tracking and insights.
+          One roadmap, full Phase 1, and a preview of the rest—free. Unlock the full plan and step tracking once, or go Pro for time logs, charts, and insights.
         </p>
         <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
           <div className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm">
@@ -142,23 +142,23 @@ export default async function Home() {
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground flex-1">
               <li>Generate one roadmap</li>
               <li>Full Phase 1 + preview of rest</li>
-              <li>Verified resources & time estimates</li>
+              <li>Grounded resources & time estimates</li>
             </ul>
           </div>
           <div className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm">
             <h3 className="font-medium text-foreground text-base">One-time unlock</h3>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground flex-1">
               <li>Full roadmap, all phases</li>
+              <li>Step tracking in every phase</li>
               <li>Lifetime access to the plan</li>
-              <li>Projects & optional challenges</li>
             </ul>
           </div>
           <div className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm">
             <h3 className="font-medium text-foreground text-base">Pro</h3>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground flex-1">
               <li>Everything above</li>
-              <li>Progress tracking & time logs</li>
-              <li>Insights, charts, weekly recap</li>
+              <li>Time logs, charts & insights</li>
+              <li>Weekly recap & up to 5 roadmaps</li>
             </ul>
           </div>
         </div>

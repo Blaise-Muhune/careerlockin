@@ -23,6 +23,7 @@ export type RoadmapWithSteps = {
       url: string;
       resource_type: string | null;
       is_free: boolean;
+      verification_status: string | null;
     }>;
   }>;
 };
@@ -81,7 +82,7 @@ export async function getRoadmapById(
 
   const { data: resources } = await supabase
     .from("resources")
-    .select("id, step_id, title, url, resource_type, is_free")
+    .select("id, step_id, title, url, resource_type, is_free, verification_status")
     .in("step_id", steps.map((s) => s.id));
 
   const stepsWithResources = steps.map((step) => ({
@@ -95,6 +96,7 @@ export async function getRoadmapById(
         url: r.url,
         resource_type: r.resource_type,
         is_free: r.is_free ?? true,
+        verification_status: (r.verification_status as string | null) ?? null,
       })),
   }));
 
@@ -136,7 +138,7 @@ export async function getLatestRoadmapForUser(
 
   const { data: resources } = await supabase
     .from("resources")
-    .select("id, step_id, title, url, resource_type, is_free")
+    .select("id, step_id, title, url, resource_type, is_free, verification_status")
     .in(
       "step_id",
       steps.map((s) => s.id)
@@ -153,6 +155,7 @@ export async function getLatestRoadmapForUser(
         url: r.url,
         resource_type: r.resource_type,
         is_free: r.is_free ?? true,
+        verification_status: (r.verification_status as string | null) ?? null,
       })),
   }));
 
@@ -248,7 +251,8 @@ export async function replaceRoadmapFromJson(
   userId: string,
   roadmapId: string,
   parsed: RoadmapJson,
-  modelName: string
+  modelName: string,
+  maxRegenerations: number
 ): Promise<void> {
   const supabase = await createClient();
 
@@ -264,8 +268,10 @@ export async function replaceRoadmapFromJson(
   }
 
   const regCount = (existing.regeneration_count as number) ?? 0;
-  if (regCount >= 1) {
-    throw new Error("You have already used your 1 regeneration for this roadmap.");
+  if (regCount >= maxRegenerations) {
+    throw new Error(
+      `You have already used your ${maxRegenerations} regeneration${maxRegenerations === 1 ? "" : "s"} for this roadmap.`
+    );
   }
 
   const { error: deleteError } = await supabase

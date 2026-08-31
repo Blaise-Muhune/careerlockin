@@ -243,21 +243,23 @@ export const PRIOR_EXPOSURE_QUICK_ADD = [
 ] as const;
 
 /**
- * Values for `profiles.prior_exposure` (must match DB check constraint).
- * Use for onboarding and anywhere profile prior skills are edited.
+ * Prior skills chips for onboarding / settings (freeform strings stored in profiles).
+ * Values are human-readable labels that also go into the LLM prompt.
  */
 export const PROFILE_PRIOR_EXPOSURE = [
-  { value: "html_css", label: "HTML / CSS" },
-  { value: "javascript", label: "JavaScript" },
-  { value: "git", label: "Git" },
-  { value: "react", label: "React" },
-  { value: "databases", label: "Databases" },
-  { value: "apis", label: "APIs" },
-  { value: "python", label: "Python" },
-  { value: "none", label: "None" },
+  ...PRIOR_EXPOSURE_QUICK_ADD.map((label) => ({ value: label, label })),
+  { value: "TypeScript", label: "TypeScript" },
+  { value: "SQL", label: "SQL" },
+  { value: "REST APIs", label: "REST APIs" },
+  { value: "Figma", label: "Figma" },
+  { value: "Writing", label: "Writing" },
+  { value: "SEO", label: "SEO" },
+  { value: "Project management", label: "Project management" },
+  { value: "None", label: "None" },
 ] as const;
 
-export type ProfilePriorExposureValue = (typeof PROFILE_PRIOR_EXPOSURE)[number]["value"];
+export type ProfilePriorExposureValue =
+  (typeof PROFILE_PRIOR_EXPOSURE)[number]["value"];
 
 export type TargetRole = (typeof TARGET_ROLES)[number];
 export type PriorExposure = (typeof PRIOR_EXPOSURE_OPTIONS)[number];

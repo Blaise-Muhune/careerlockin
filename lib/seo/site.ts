@@ -9,7 +9,7 @@ const siteDescription =
 const defaultOgImagePath = "/og.png";
 
 /** Contact/support email for users to reach out. */
-export const supportEmail = "blaisemu007@gmail.com";
+export const supportEmail = "careerlockinsupport@zingocorp.space";
 
 /** Production URL. Prefer NEXT_PUBLIC_SITE_URL; fall back to NEXT_PUBLIC_APP_URL. */
 function getSiteUrl(): string {

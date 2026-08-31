@@ -70,8 +70,8 @@ export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersPr
         <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">$29.99</p>
         <p className="text-sm text-muted-foreground mt-1">One-time</p>
         <p className="text-sm text-muted-foreground mt-2">
-          Full roadmap content: all phases, steps, and resources. Lifetime access
-          to that plan. Tracking stays on Phase 1 unless you upgrade to Pro.
+          Full roadmap plus step tracking in every phase. Lifetime access to that
+          plan. Time logs and charts require Pro.
         </p>
         <Button asChild variant="secondary" className="mt-6 w-full">
           <Link href={paidHref}>{unlockLabel}</Link>
@@ -89,8 +89,8 @@ export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersPr
           $9.99<span className="text-sm font-normal text-muted-foreground">/month</span>
         </p>
         <p className="text-sm text-muted-foreground mt-2">
-          Everything in Roadmap Unlock plus tracking in all phases, time logs,
-          charts and insights, recap emails, and up to five roadmaps.
+          Everything in Roadmap Unlock plus time logs in all phases, charts and
+          insights, recap emails, up to five roadmaps, and more regenerations.
         </p>
         <Button asChild className="mt-6 w-full">
           <Link href={paidHref}>{proLabel}</Link>

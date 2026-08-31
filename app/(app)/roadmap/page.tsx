@@ -17,12 +17,15 @@ import {
   calculateRoadmapTotal,
 } from "@/lib/server/roadmap/estimates";
 import { getEntitlements } from "@/lib/server/billing/entitlements";
+import { getRegenLimitForPlan } from "@/lib/server/billing/computeEntitlements";
 import { ShareProgressButton } from "@/components/share/ShareProgressButton";
 import { RoadmapContent } from "./roadmap-content";
 import { RoadmapSwitcher } from "./roadmap-switcher";
 import { RegenerateRoadmapCard } from "./regenerate-roadmap-card";
 import { getProfileNetworkingSettings } from "@/lib/server/db/networking";
 import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
+import { EmptyState } from "@/components/ui/empty-state";
+import { GenerateRoadmapButton } from "@/app/(app)/dashboard/generate-roadmap-button";
 
 function formatWeeks(w: number): string {
   if (w < 0.1 && w > 0) return "< 0.1 weeks";
@@ -82,11 +85,18 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
       <div className="flex flex-col gap-10">
         <PageHeader
           title="Roadmap"
-          subtitle="You don't have a roadmap yet. Create one from the dashboard."
+          subtitle="You don't have a roadmap yet."
+        />
+        <EmptyState
+          title="No roadmap yet"
+          description="Generate a free Phase 1 plan from your profile, or return to the dashboard."
           action={
-            <Button asChild variant="secondary">
-              <Link href="/dashboard">Go to dashboard</Link>
-            </Button>
+            <div className="flex flex-col items-center gap-3">
+              <GenerateRoadmapButton />
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/dashboard">Back to dashboard</Link>
+              </Button>
+            </div>
           }
         />
       </div>
@@ -128,7 +138,9 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
     });
     return {
       focus_sentence: g.weekly_focus_description,
-      message_outlines: entitlements.isPro ? g.message_outlines : g.message_outlines.slice(0, 1),
+      message_drafts: entitlements.isPro
+        ? g.message_drafts
+        : g.message_drafts.slice(0, 1),
     };
   });
 
@@ -177,6 +189,7 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
           targetRole={roadmap.target_role}
           profile={profileForEdit}
           regenerationCount={roadmap.regeneration_count ?? 0}
+          maxRegenerations={getRegenLimitForPlan(entitlements.isPro)}
         />
       )}
       <RoadmapContent
@@ -187,7 +200,7 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
         phaseMap={phaseMap}
         weeklyHours={weeklyHours}
         canViewFullRoadmap={entitlements.canViewFullRoadmap}
-        canUseTracking={entitlements.canUseTracking}
+        canTrackAllPhases={entitlements.canTrackAllPhases}
         hasRoadmapUnlock={entitlements.hasRoadmapUnlock}
         isPro={entitlements.isPro}
         networkingByPhaseIndex={networkingByPhaseIndex}

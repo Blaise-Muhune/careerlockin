@@ -80,56 +80,36 @@ The schema is implemented in `lib/server/ai/roadmapSchema.ts`.
 
 ### Resource grounding and URL validation (no fake links)
 
-Roadmap resources are grounded with web search so the model cannot invent links:
+Roadmap resources are grounded with web_search so the model cannot invent domains:
 
-- **Grounding**: `generateRoadmap` uses the OpenAI Responses API with `web_search` and requests `web_search_call.action.sources`. Every resource must include `source_id` that matches the web-search sources, and the server enforces that `resource.url` exactly matches the selected source URL.
-- **URL validation**: The server validates URLs (https + not a shortener) and optionally probes reachability (HEAD then GET). If invalid/unavailable, a safe fallback is substituted and `verification_status` is set to `"fallback"`.
+- **Grounding**: Keep resources whose URL exact-matches a search source, **or** shares a host with a search source (domain-grounded). Legacy hosts like `reactjs.org` are rewritten to `react.dev` first.
+- **Reachability**: Verified URLs are probed (HEAD/GET). Clearly dead links are dropped.
+- **Fallback**: If a step would have zero resources, a curated canonical doc is added (`verification_status = fallback`). The UI labels these “Curated”.
+- **Unverified / invented hosts never ship**.
 
-This keeps the UX premium while preventing hallucinated or broken links.
+### Market realism
 
-### Why projects exist (premium, job-aligned)
-
-Each phase includes exactly one **phase project** designed to simulate a real job task:
-
-- Fewer, better projects (no filler)
-- Phase-aligned (matches the skills taught in the phase)
-- Written in professional language (“Build”, “Design”, “Implement”, “Simulate”)
-
-These projects help users produce real portfolio artifacts and practice work-like delivery.
-
-### Optional challenges philosophy
-
-Steps can include 0–2 optional practices:
-
-- **Project**: a small, optional implementation task that reinforces the step
-- **Challenge**: optional interview practice (only when goal is job/internship and role is software engineering)
-
-Challenges are never mandatory and are capped across the roadmap to avoid intimidation.
-
-### Timeframe estimates
-
-`est_hours` per step drives **phase and roadmap timeframe estimates**. The app sums `est_hours` per phase (and for the whole roadmap), divides by the user’s `profiles.weekly_hours`, and shows “Estimated: X weeks” with “Calculated with your weekly hours: Yh/week”. Logic lives in `lib/server/roadmap/estimates.ts` (`calculatePhaseEstimates`, `calculateRoadmapTotal`). Null or missing `est_hours` are treated as 0 so calculations never fail.
+- Role-family **market guidance** is injected into the user prompt (`lib/server/ai/marketGuidance.ts`).
+- Uniform padded hours are redistributed (`diversifyPhaseHours`); totals are scaled to `weekly_hours × time_horizon_weeks` (±15%).
+- Generation uses **gpt-4.1** with web_search required.
 
 ## Profile inputs for personalization
 
-The user prompt is built from profile fields so the roadmap fits the user’s goal, timeline, and learning style. All of these come from onboarding and are stored on `profiles`.
-
 | Profile field | Source | Effect on roadmap |
 |---------------|--------|-------------------|
-| **goal_intent** (required) | Onboarding radio: job, internship, career_switch, skill_upgrade | Shapes focus (e.g. job-ready vs skill-up). |
-| **target_timeline_weeks** (optional) | Onboarding dropdown: 8, 12, 16, 24 or “No deadline” | If set, used as `time_horizon_weeks` so the roadmap fits that length. |
-| **prior_exposure** (optional) | Onboarding checkboxes: html_css, javascript, git, react, databases, apis, python, none | Instructs the model to skip or shorten early steps that cover those topics. |
-| **learning_preference** (optional) | Onboarding radio: reading, video, project_first, mixed | Instructs the model to prefer matching resource types (e.g. video vs reading vs hands-on). |
-
-Existing profiles get default `goal_intent = 'skill_upgrade'` and `null` for optional fields so generation still works.
+| **goal_intent** (required) | Onboarding | Shapes focus (job-ready vs skill-up). |
+| **target_timeline_weeks** (optional) | Onboarding | Used as `time_horizon_weeks`. |
+| **prior_exposure** (optional) | Freeform skill chips (and custom on regen forms) | Skip/shorten basics the user already knows. |
+| **learning_preference** (optional) | Onboarding | Prefer matching resource types. |
+| **target_role_job_description** (optional) | Onboarding / settings | Tailors steps to the JD. |
 
 ## Retry / validation behavior
 
-1. The server action calls the LLM with a **system prompt** (strict JSON, schema, rules) and a **user prompt** built from profile data (target_role, weekly_hours, current_level, time_horizon_weeks, goal_intent, target_timeline_weeks, prior_exposure, learning_preference).
-2. Response text is parsed as JSON (after stripping surrounding text so only the outermost `{ ... }` is used).
-3. The parsed object is validated with `roadmapJsonSchema`.
-4. **If validation fails:** up to **2 retries** (3 attempts total). On retry, the assistant receives its previous raw output and a **correction prompt** that includes the Zod validation error messages (field path + message). No secrets or full tokens are included in the correction prompt.
-5. **If valid:** the roadmap is written to `roadmaps`, `roadmap_steps`, and `resources` via `createRoadmapFromJson`, and the new roadmap id is returned.
+1. LLM call with system + user prompt, required `web_search`, structured Zod schema.
+2. Truncation/parse retries (up to 3 attempts).
+3. Zod `safeParse`. On failure: **one correction prompt** with schema errors + previous JSON, then re-validate.
+4. Post-process: practices normalize → grounding → reachability → ensure ≥1 resource → hour budget (steps + projects).
+5. Persist via `createRoadmapFromJson` / `replaceRoadmapFromJson`.
 
 ## Where to change counts (phases / steps / resources)
 

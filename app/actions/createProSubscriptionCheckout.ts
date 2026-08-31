@@ -6,6 +6,7 @@ import { getStripe } from "@/lib/server/stripe/client";
 import { getPriceIds } from "@/lib/server/stripe/prices";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/server/env";
+import { trackProductEvent } from "@/lib/server/analytics/productEvents";
 
 export type CreateProSubscriptionCheckoutResult =
   | { ok: true; url: string }
@@ -13,6 +14,7 @@ export type CreateProSubscriptionCheckoutResult =
 
 export async function createProSubscriptionCheckout(): Promise<CreateProSubscriptionCheckoutResult> {
   const user = await requireUser();
+  void trackProductEvent(user.id, "checkout_pro_started");
   const baseUrl = getBaseUrl();
 
   const supabase = await createClient();
@@ -29,6 +31,7 @@ export async function createProSubscriptionCheckout(): Promise<CreateProSubscrip
     mode: "subscription",
     client_reference_id: user.id,
     metadata: { user_id: user.id },
+    subscription_data: { metadata: { user_id: user.id } },
     ...(customerId ? { customer: customerId } : { customer_email: email ?? undefined }),
     line_items: [{ price: proSubscription, quantity: 1 }],
     success_url: `${baseUrl}/settings?pro=success`,

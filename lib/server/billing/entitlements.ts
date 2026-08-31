@@ -1,14 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import {
+  computeEntitlements,
+  type Entitlements,
+} from "@/lib/server/billing/computeEntitlements";
 
-export type Entitlements = {
-  hasRoadmapUnlock: boolean;
-  isPro: boolean;
-  canViewFullRoadmap: boolean;
-  canUseTracking: boolean;
-  canSeeCharts: boolean;
-  canGenerateExtraRoadmaps: boolean;
-};
+export type { Entitlements };
 
 const PRODUCT_KEY_ROADMAP_UNLOCK = "roadmap_unlock";
 const PURCHASE_STATUS_PAID = "paid";
@@ -20,8 +17,8 @@ const SUB_STATUS_TRIALING = "trialing";
  * Call with the server-resolved user id (e.g. from requireUser()).
  *
  * - canViewFullRoadmap = hasRoadmapUnlock OR isPro
- * - Tracking, charts, insights = Pro only
- * - canGenerateExtraRoadmaps = true only for Pro (up to 5); free and one-time unlock get 1 roadmap
+ * - canTrackAllPhases = hasRoadmapUnlock OR isPro (step complete / current work)
+ * - canUseTracking / charts / extra roadmaps = Pro only (time logs beyond Phase 1)
  */
 export async function getEntitlements(userId: string): Promise<Entitlements> {
   const supabase = await createClient();
@@ -40,18 +37,10 @@ export async function getEntitlements(userId: string): Promise<Entitlements> {
       .in("status", [SUB_STATUS_ACTIVE, SUB_STATUS_TRIALING]),
   ]);
 
-  const hasRoadmapUnlock =
-    Array.isArray(purchaseRows) && purchaseRows.length > 0;
-  const isPro = Array.isArray(subRows) && subRows.length > 0;
-
-  return {
-    hasRoadmapUnlock,
-    isPro,
-    canViewFullRoadmap: hasRoadmapUnlock || isPro,
-    canUseTracking: isPro,
-    canSeeCharts: isPro,
-    canGenerateExtraRoadmaps: isPro,
-  };
+  return computeEntitlements({
+    hasPaidUnlock: Array.isArray(purchaseRows) && purchaseRows.length > 0,
+    hasActiveOrTrialingSub: Array.isArray(subRows) && subRows.length > 0,
+  });
 }
 
 export type SubscriptionDetails = {

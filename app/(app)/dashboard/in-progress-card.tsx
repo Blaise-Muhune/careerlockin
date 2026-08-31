@@ -74,15 +74,15 @@ export function InProgressCard({
   if (!currentWork || !currentWork.step_id || !currentWork.phase_title) {
     return (
       <Card className="shadow-sm ring-1 ring-border/60">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">In progress</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">Next step</CardTitle>
           <CardDescription>
-            Pick a step to start working on it.
+            Choose one roadmap step so it shows up here while you work.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild variant="secondary">
-            <Link href="/roadmap">Pick a step to start</Link>
+          <Button asChild>
+            <Link href="/roadmap">Open roadmap</Link>
           </Button>
         </CardContent>
       </Card>
@@ -142,7 +142,7 @@ export function InProgressCard({
           )}
           {!canUseTracking && (
             <Button asChild size="sm" variant="secondary">
-              <Link href="/settings">Pro unlocks tracking</Link>
+              <Link href="/settings">Unlock to track this phase</Link>
             </Button>
           )}
           <Button asChild size="sm" variant="ghost">

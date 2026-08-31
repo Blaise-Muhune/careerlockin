@@ -76,8 +76,10 @@ export function UnlockOptions({
         </p>
       )}
       <p className="text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">Roadmap Unlock</span> gives full roadmap access with a one-time purchase.
-        <span className="ml-1 font-medium text-foreground">Pro</span> includes roadmap access plus tracking, charts, and insights.
+        <span className="font-medium text-foreground">Roadmap Unlock</span> gives
+        full roadmap access and step tracking in every phase.
+        <span className="ml-1 font-medium text-foreground">Pro</span> adds time
+        logs, charts, insights, and multiple roadmaps.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {showUnlockPlan && (
@@ -85,7 +87,8 @@ export function UnlockOptions({
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Roadmap Unlock</CardTitle>
               <CardDescription>
-                One-time purchase. See all phases, steps, and resources.
+                One-time purchase. See and check off all phases, steps, and
+                resources.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -109,9 +112,9 @@ export function UnlockOptions({
               <CardDescription>
                 {cancelAtPeriodEnd
                   ? "Resubscribe before your period ends to keep tracking and insights."
-                  : showUnlockPlan
-                    ? "Subscription includes full roadmap plus tracking, charts, and insights."
-                    : "Unlock tracking, time logs, charts, and insights."}
+                    : showUnlockPlan
+                    ? "Subscription includes full roadmap, step tracking, time logs, charts, and insights."
+                    : "Unlock time logs, charts, and insights."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -133,7 +136,9 @@ export function UnlockOptions({
           <Card className="sm:col-span-2">
             <CardContent className="flex flex-col gap-2 pt-6">
               <p className="text-sm text-muted-foreground">
-                Manage your subscription and invoices.
+                Manage payment methods, invoices, or cancel Pro. Cancellation is
+                handled in the Stripe billing portal; you keep Pro until the end
+                of the current period.
               </p>
               <Button
                 variant="outline"
@@ -142,7 +147,7 @@ export function UnlockOptions({
                 onClick={handlePortal}
                 disabled={!!pending}
               >
-                {pending === "portal" ? "Redirecting…" : "Manage billing"}
+                {pending === "portal" ? "Redirecting…" : "Manage billing / cancel"}
               </Button>
             </CardContent>
           </Card>

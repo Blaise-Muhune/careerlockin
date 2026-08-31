@@ -12,7 +12,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "CareerLockin plans: Free roadmap preview, one-time Roadmap Unlock for full content, and Pro for tracking, insights, and multiple roadmaps.",
+    "CareerLockin plans: Free roadmap preview, one-time Roadmap Unlock for full content and step tracking, and Pro for time logs, insights, and multiple roadmaps.",
   alternates: { canonical: `${siteUrl}/pricing` },
 };
 
@@ -33,10 +33,10 @@ export default async function PricingPage() {
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:max-w-5xl">
         <p className="mb-6">
           <Link
-            href="/"
+            href={ctaContext === "app" ? "/dashboard" : "/"}
             className="text-sm text-muted-foreground underline-offset-4 hover:underline"
           >
-            ← Back to home
+            {ctaContext === "app" ? "← Back to dashboard" : "← Back to home"}
           </Link>
         </p>
         <h1 className="text-2xl sm:text-3xl font-semibold text-foreground mb-2">
@@ -86,7 +86,7 @@ export default async function PricingPage() {
                 <tr className="border-b border-border/40">
                   <td className="p-3 text-foreground font-medium">Step tracking</td>
                   <td className="p-3">Phase 1 only</td>
-                  <td className="p-3">Phase 1 only</td>
+                  <td className="p-3">All phases</td>
                   <td className="p-3">All phases</td>
                 </tr>
                 <tr className="border-b border-border/40">
@@ -94,6 +94,12 @@ export default async function PricingPage() {
                   <td className="p-3">—</td>
                   <td className="p-3">—</td>
                   <td className="p-3">Yes</td>
+                </tr>
+                <tr className="border-b border-border/40">
+                  <td className="p-3 text-foreground font-medium">Roadmap regenerations</td>
+                  <td className="p-3">1</td>
+                  <td className="p-3">1</td>
+                  <td className="p-3">3</td>
                 </tr>
                 <tr>
                   <td className="p-3 text-foreground font-medium">Recap / milestone emails</td>
@@ -109,7 +115,7 @@ export default async function PricingPage() {
         <p className="mt-10 text-sm text-muted-foreground text-center">
           {ctaContext === "app" ? (
             <>
-              You're signed in —{" "}
+              You&apos;re signed in —{" "}
               <Link href="/settings#unlock-options" className="text-primary font-medium hover:underline underline-offset-2">
                 open Settings to upgrade or pay
               </Link>

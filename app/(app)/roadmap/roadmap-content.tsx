@@ -13,6 +13,7 @@ import { Lock } from "lucide-react";
 import { StepRow } from "./step-row";
 import { StepDetailModal } from "./step-detail-modal";
 import { LockBanner } from "./lock-banner";
+import type { MessageDraft } from "@/lib/networking/draftTypes";
 import type { RoadmapWithSteps } from "@/lib/server/db/roadmaps";
 import type { ProgressEntry } from "@/lib/server/db/progress";
 import type { CurrentWorkRow } from "@/lib/server/db/currentWork";
@@ -37,17 +38,13 @@ type RoadmapContentProps = {
   phaseMap: Record<string, { hours: number; weeks: number }>;
   weeklyHours: number;
   canViewFullRoadmap: boolean;
-  canUseTracking: boolean;
+  /** Step complete / current work beyond Phase 1. */
+  canTrackAllPhases: boolean;
   hasRoadmapUnlock?: boolean;
   isPro?: boolean;
   networkingByPhaseIndex: Array<{
     focus_sentence: string;
-    message_outlines: Array<{
-      purpose: "ask_for_advice" | "ask_for_referral" | "request_coffee_chat";
-      subject_line: string;
-      outline_points: string[];
-      personalization_required_note: string;
-    }>;
+    message_drafts: MessageDraft[];
   }>;
 };
 
@@ -59,7 +56,7 @@ export function RoadmapContent({
   phaseMap,
   weeklyHours,
   canViewFullRoadmap,
-  canUseTracking,
+  canTrackAllPhases,
   hasRoadmapUnlock = false,
   isPro = false,
   networkingByPhaseIndex,
@@ -104,8 +101,8 @@ export function RoadmapContent({
     ? !canViewFullRoadmap && selectedPhaseIndex > 0
     : false;
 
-  const canUseTrackingInSelectedPhase =
-    selectedPhaseIndex === 0 || canUseTracking;
+  const canTrackStepsInSelectedPhase =
+    selectedPhaseIndex === 0 || canTrackAllPhases;
 
   const selectedNetworking =
     selectedPhaseIndex >= 0 ? networkingByPhaseIndex[selectedPhaseIndex] : null;
@@ -142,7 +139,7 @@ export function RoadmapContent({
       {!canViewFullRoadmap && <LockBanner />}
       {canViewFullRoadmap && planLabel && (
         <p className="text-sm text-muted-foreground mb-4" data-plan-badge>
-          You have <span className="font-medium text-foreground">{planLabel}</span> — {isPro ? "track in all phases, time logs, and insights." : "all phases and steps are visible."}
+          You have <span className="font-medium text-foreground">{planLabel}</span> — {isPro ? "track in all phases, time logs, and insights." : "full roadmap and step tracking in every phase. Upgrade to Pro for time logs and charts."}
         </p>
       )}
       {phases.length === 0 ? (
@@ -256,10 +253,10 @@ export function RoadmapContent({
         roadmapId={roadmapId}
         phaseTitle={selectedPhaseTitle}
         networkingFocus={selectedNetworking?.focus_sentence ?? null}
-        messageOutlines={selectedNetworking?.message_outlines ?? []}
+        messageDrafts={selectedNetworking?.message_drafts ?? []}
         open={selectedStepId !== null}
         onOpenChange={(o) => !o && setSelectedStepId(null)}
-        canUseTracking={canUseTrackingInSelectedPhase}
+        canUseTracking={canTrackStepsInSelectedPhase}
         isLockedView={selectedIsLocked}
       />
     </>
