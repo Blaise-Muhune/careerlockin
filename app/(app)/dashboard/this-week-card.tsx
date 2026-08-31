@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,10 +14,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { addTimeLogAction } from "@/app/actions/addTimeLog";
+import {
+  addTimeLogAction,
+  type AddTimeLogState,
+} from "@/app/actions/addTimeLog";
 import { editTimeLogAction } from "@/app/actions/editTimeLog";
 import { deleteTimeLogAction } from "@/app/actions/deleteTimeLog";
 import type { TimeLogRow } from "@/lib/server/db/timeLogs";
+import { cn } from "@/lib/utils";
 
 type ThisWeekCardProps = {
   weeklyHours: number;
@@ -35,20 +40,53 @@ export function ThisWeekCard({
 }: ThisWeekCardProps) {
   const router = useRouter();
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-
-  const [addState, addFormAction, isAddPending] = useActionState(
-    addTimeLogAction,
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isAddPending, startAddTransition] = useTransition();
+  const [justLogged, setJustLogged] = useState(false);
+  const [celebrateNewest, setCelebrateNewest] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const clearLoggedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearCelebrateTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+
   const [delState, delFormAction] = useActionState(deleteTimeLogAction, null);
   const [editState, editFormAction] = useActionState(editTimeLogAction, null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (addState?.ok ?? delState?.ok ?? editState?.ok) {
+    if (delState?.ok || editState?.ok) {
       router.refresh();
     }
-  }, [addState?.ok, delState?.ok, editState?.ok, router]);
+  }, [delState?.ok, editState?.ok, router]);
+
+  function flashLoggedSuccess() {
+    setJustLogged(true);
+    setCelebrateNewest(true);
+    setAddError(null);
+    formRef.current?.reset();
+    router.refresh();
+    if (clearLoggedTimer.current) clearTimeout(clearLoggedTimer.current);
+    if (clearCelebrateTimer.current) clearTimeout(clearCelebrateTimer.current);
+    clearLoggedTimer.current = setTimeout(() => setJustLogged(false), 2400);
+    clearCelebrateTimer.current = setTimeout(
+      () => setCelebrateNewest(false),
+      1100
+    );
+  }
+
+  function submitAdd(formData: FormData) {
+    startAddTransition(async () => {
+      const result: AddTimeLogState = await addTimeLogAction(null, formData);
+      if (result.ok) {
+        flashLoggedSuccess();
+      } else {
+        setAddError(result.error);
+      }
+    });
+  }
+
+  const celebrateId = celebrateNewest ? (timeLogs[0]?.id ?? null) : null;
 
   const progressPct =
     weeklyHours > 0
@@ -61,12 +99,22 @@ export function ThisWeekCard({
   ] as const;
 
   return (
-    <Card className="shadow-sm ring-1 ring-border/60">
+    <Card
+      className={cn(
+        "shadow-sm ring-1 ring-border/60 transition-[box-shadow] duration-500",
+        justLogged && "ring-primary/40 shadow-primary/10"
+      )}
+    >
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">This week</CardTitle>
         <CardDescription className="text-muted-foreground">
           Planned: {weeklyHours}h · Done:{" "}
-          <span className="font-medium text-foreground">
+          <span
+            className={cn(
+              "font-medium text-foreground tabular-nums transition-colors duration-300",
+              justLogged && "text-primary"
+            )}
+          >
             {completedHours.toFixed(1)}h
           </span>
         </CardDescription>
@@ -74,14 +122,21 @@ export function ThisWeekCard({
       <CardContent className="flex flex-col gap-5">
         {weeklyHours > 0 && (
           <div
-            className="h-2 w-full rounded-full bg-muted/80 overflow-hidden"
+            className={cn(
+              "h-2 w-full rounded-full bg-muted/80 overflow-hidden",
+              justLogged &&
+                "ring-2 ring-primary/25 ring-offset-2 ring-offset-background"
+            )}
             role="progressbar"
             aria-valuenow={progressPct}
             aria-valuemin={0}
             aria-valuemax={100}
           >
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              className={cn(
+                "h-full rounded-full bg-primary transition-[width] duration-700 ease-out",
+                justLogged && "animate-pulse"
+              )}
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -106,9 +161,16 @@ export function ThisWeekCard({
               </p>
               <div className="flex flex-wrap gap-2">
                 {quickTemplates.map((template) => (
-                  <form key={template.label} action={addFormAction}>
+                  <form
+                    key={template.label}
+                    action={submitAdd}
+                  >
                     <input type="hidden" name="log_date" value={today} />
-                    <input type="hidden" name="minutes" value={template.minutes} />
+                    <input
+                      type="hidden"
+                      name="minutes"
+                      value={template.minutes}
+                    />
                     <input type="hidden" name="note" value={template.note} />
                     <Button
                       type="submit"
@@ -123,7 +185,8 @@ export function ThisWeekCard({
                 ))}
               </div>
               <form
-                action={addFormAction}
+                ref={formRef}
+                action={submitAdd}
                 className="flex flex-wrap items-end gap-2"
               >
                 <div className="flex flex-col gap-1">
@@ -182,16 +245,37 @@ export function ThisWeekCard({
                   type="submit"
                   size="sm"
                   disabled={isAddPending}
-                  className="min-h-[44px] touch-manipulation shrink-0"
+                  className="min-h-[44px] touch-manipulation shrink-0 gap-1.5"
+                  aria-live="polite"
                 >
-                  {isAddPending ? "Adding…" : "Add"}
+                  {isAddPending ? (
+                    "Adding…"
+                  ) : justLogged ? (
+                    <>
+                      <Check className="size-4" aria-hidden />
+                      Logged
+                    </>
+                  ) : (
+                    "Add"
+                  )}
                 </Button>
               </form>
-              {addState && !addState.ok && (
-                <p className="text-sm text-destructive" role="alert">
-                  {addState.error}
+
+              {justLogged ? (
+                <p
+                  className="flex items-center gap-1.5 text-sm text-primary animate-in fade-in slide-in-from-bottom-1 duration-300"
+                  role="status"
+                >
+                  <Check className="size-3.5 shrink-0" aria-hidden />
+                  Time logged. Keep going.
                 </p>
-              )}
+              ) : null}
+
+              {addError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {addError}
+                </p>
+              ) : null}
             </section>
 
             {timeLogs.length > 0 ? (
@@ -203,7 +287,11 @@ export function ThisWeekCard({
                   {timeLogs.map((log) => (
                     <li
                       key={log.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm"
+                      className={cn(
+                        "flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm transition-[background-color,box-shadow] duration-500",
+                        celebrateId === log.id &&
+                          "bg-primary/15 ring-1 ring-primary/30 animate-in fade-in slide-in-from-top-2 duration-400"
+                      )}
                     >
                       {editingId === log.id ? (
                         <form
