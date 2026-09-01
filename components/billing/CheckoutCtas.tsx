@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createRoadmapUnlockCheckout } from "@/app/actions/createRoadmapUnlockCheckout";
 import { createProSubscriptionCheckout } from "@/app/actions/createProSubscriptionCheckout";
+import { appPrimaryButtonClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 type CheckoutCtasProps = {
   className?: string;
@@ -15,15 +17,12 @@ type CheckoutCtasProps = {
   buttonClassName?: string;
 };
 
-/**
- * Starts Stripe Checkout immediately (Unlock one-time or Pro subscription).
- */
 export function CheckoutCtas({
   className,
   size = "sm",
   unlockLabel = "Unlock roadmap access",
   proLabel = "Upgrade to Pro",
-  unlockVariant = "secondary",
+  unlockVariant = "outline",
   proVariant = "default",
   buttonClassName,
 }: CheckoutCtasProps) {
@@ -54,6 +53,13 @@ export function CheckoutCtas({
     setError(out.error);
   }
 
+  const pillClass = cn("rounded-full min-h-9", buttonClassName);
+  const proClass = cn(
+    pillClass,
+    proVariant === "default" && appPrimaryButtonClass
+  );
+  const unlockClass = cn(pillClass, unlockVariant === "outline" && "border-border/70");
+
   return (
     <div className={className}>
       <div className="flex flex-wrap gap-2">
@@ -61,7 +67,7 @@ export function CheckoutCtas({
           type="button"
           variant={unlockVariant}
           size={size}
-          className={buttonClassName}
+          className={unlockClass}
           disabled={!!pending}
           onClick={handleUnlock}
         >
@@ -71,18 +77,18 @@ export function CheckoutCtas({
           type="button"
           variant={proVariant}
           size={size}
-          className={buttonClassName}
+          className={proClass}
           disabled={!!pending}
           onClick={handlePro}
         >
           {pending === "pro" ? "Redirecting…" : proLabel}
         </Button>
       </div>
-      {error && (
+      {error ? (
         <p className="mt-2 text-sm text-destructive" role="alert">
           {error}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

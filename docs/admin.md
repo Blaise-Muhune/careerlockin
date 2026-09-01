@@ -4,11 +4,33 @@ Internal, read-only admin dashboard for the founder to monitor product health, u
 
 ## Who can access
 
-- **Method:** Database flag only (`profiles.is_admin`).
-- **Who:** Anyone with `profiles.is_admin = true`. Set via Supabase SQL or a script using the **service role**.
-- **Non-admins:** Visiting `/admin` redirects to `/dashboard`. They never see admin data.
+Admin access is granted if **any** of these are true:
 
-### Granting admin access safely
+1. **App allowlist** — founder emails in `lib/server/admin/adminAllowlist.ts` (immediate access, including before onboarding).
+2. **Database flag** — `profiles.is_admin = true` (set by migration trigger, onboarding backfill, or manual SQL).
+
+**Allowlisted founder emails:**
+
+- `blaisemu007@gmail.com`
+- `muyumba@andrews.edu`
+
+**Non-admins:** Visiting `/admin` redirects to `/dashboard`. They never see admin data.
+
+### Production setup
+
+Run once against the production Supabase project (uses `SUPABASE_SERVICE_ROLE_KEY` from env):
+
+```bash
+pnpm admin:apply
+pnpm admin:verify
+```
+
+- **`admin:apply`** — sets `is_admin` on existing profiles for allowlisted emails.
+- **`admin:verify`** — confirms DB state for allowlisted emails.
+
+Also run migration `00022` once in the Supabase SQL Editor (creates the profile-insert trigger). The app allowlist and onboarding backfill work without it.
+
+### Granting admin access manually
 
 1. Use the Supabase dashboard or `psql` with the service-role (or a backend script using `SUPABASE_SERVICE_ROLE_KEY`).
 2. Update only the intended user:
@@ -64,7 +86,7 @@ All metrics are **aggregates only**. No emails, names, or identifiers.
 ## Technical details
 
 - **Routes:** `/admin` only. Layout and page live under `app/(admin)/`.
-- **Auth:** `lib/server/admin/requireAdmin.ts` enforces logged-in user + `profiles.is_admin`. Redirects to `/login` or `/dashboard` otherwise.
+- **Auth:** `lib/server/admin/requireAdmin.ts` checks app allowlist **or** `profiles.is_admin`. Redirects to `/login` or `/dashboard` otherwise.
 - **Analytics:** `lib/server/admin/analytics.ts` uses the **service role** client to run aggregate queries. No RLS bypass for user-level reads.
 - **Access logging:** Timestamp-only log line on each admin load (`[admin] access <iso-timestamp>`). No IPs or user ids in logs.
 - **SEO:** `robots: "noindex, nofollow"` on the admin layout so the dashboard is not indexed.
@@ -74,11 +96,14 @@ All metrics are **aggregates only**. No emails, names, or identifiers.
 | Purpose | Path |
 |--------|------|
 | Admin gate | `lib/server/admin/requireAdmin.ts` |
+| App allowlist | `lib/server/admin/adminAllowlist.ts` |
+| Onboarding backfill | `lib/server/admin/grantAllowlistedAdmin.ts` |
 | Access log | `lib/server/admin/logAccess.ts` |
 | Analytics (service role, aggregates) | `lib/server/admin/analytics.ts` |
 | Admin layout (noindex, nav) | `app/(admin)/layout.tsx` |
 | Admin page + dashboard UI | `app/(admin)/admin/page.tsx`, `AdminDashboard.tsx` |
 | DB flag | `supabase/migrations/00008_admin_flag.sql` |
+| Admin allowlist | `supabase/migrations/00022_admin_allowlist_emails.sql` |
 
 ## MRR configuration
 

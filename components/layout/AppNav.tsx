@@ -8,161 +8,135 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogTitle,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { Menu, X, Shield } from "lucide-react";
+import {
+  LayoutDashboard,
+  Map,
+  Menu,
+  Settings,
+  Shield,
+  ArrowUpCircle,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { appNavItemActiveClass, appNavItemClass, appNavItemInactiveClass } from "@/lib/layout/app";
 
 const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/roadmap", label: "Roadmap" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/roadmap", label: "Roadmap", icon: Map },
+  { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 function isActivePath(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(href + "/");
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 type AppNavProps = {
   isAdmin?: boolean;
+  /** When true, only render the mobile menu trigger (desktop uses AppSidebar). */
+  mobileOnly?: boolean;
 };
 
-export function AppNav({ isAdmin = false }: AppNavProps) {
+export function AppNav({ isAdmin = false, mobileOnly = false }: AppNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
+  if (!mobileOnly) {
+    return null;
+  }
+
   return (
     <>
-      <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-        {NAV_LINKS.map(({ href, label }) => {
-          const active = isActivePath(pathname, href);
-          return (
-            <Button
-              key={href}
-              asChild
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "min-h-[44px] min-w-[44px] sm:min-w-0 sm:px-3 rounded-lg",
-                active
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-              )}
-            >
-              <Link href={href}>{label}</Link>
-            </Button>
-          );
-        })}
-        {isAdmin && (
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "min-h-[44px] min-w-[44px] sm:min-w-0 sm:px-3 rounded-lg",
-              isActivePath(pathname, "/admin")
-                ? "bg-accent text-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-            )}
-          >
-            <Link href="/admin">
-              <Shield className="size-4 sm:mr-2" aria-hidden />
-              <span className="hidden sm:inline">Admin</span>
-            </Link>
-          </Button>
-        )}
-        <ThemeToggle />
-        <form action={logout} className="inline-flex">
-          <Button
-            type="submit"
-            variant="ghost"
-            size="sm"
-            className="min-h-[44px] min-w-[44px] sm:min-w-0 sm:px-3 text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg"
-          >
-            Log out
-          </Button>
-        </form>
-      </nav>
-
-      <div className="flex md:hidden items-center">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          aria-label="Open menu"
-          onClick={() => setMenuOpen(true)}
-        >
-          <Menu className="size-6" />
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-10 rounded-xl"
+        aria-label="Open menu"
+        onClick={() => setMenuOpen(true)}
+      >
+        <Menu className="size-5" />
+      </Button>
 
       <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
         <DialogContent
-          className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-50 h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex flex-col gap-0 rounded-none border-0 bg-background p-6 pt-6 shadow-lg md:hidden"
+          className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-50 h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex flex-col gap-0 rounded-none border-0 bg-background p-0 shadow-lg"
           showCloseButton={false}
         >
-          <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
-            <DialogTitle className="text-lg font-semibold">Menu</DialogTitle>
+          <DialogHeader className="flex shrink-0 flex-row items-center justify-between border-b border-border/50 px-4 py-4">
+            <DialogTitle className="text-lg font-bold">Menu</DialogTitle>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="min-h-[44px] min-w-[44px] rounded-lg -mr-2"
+              className="size-10 rounded-xl"
               aria-label="Close menu"
               onClick={() => setMenuOpen(false)}
             >
               <X className="size-5" />
             </Button>
           </DialogHeader>
-          <div className="flex flex-col gap-1 pt-4">
-            {NAV_LINKS.map(({ href, label }) => {
-              const active = isActivePath(pathname, href);
-              return (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain p-3">
+              {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+                const active = isActivePath(pathname, href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMenuOpen(false)}
+                    className={cn(
+                      appNavItemClass,
+                      "min-h-12 px-4",
+                      active ? appNavItemActiveClass : appNavItemInactiveClass
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" aria-hidden />
+                    {label}
+                  </Link>
+                );
+              })}
+              {isAdmin ? (
                 <Link
-                  key={href}
-                  href={href}
+                  href="/admin"
                   onClick={() => setMenuOpen(false)}
                   className={cn(
-                    "flex min-h-[48px] items-center px-4 rounded-lg font-medium transition-colors touch-manipulation",
-                    active
-                      ? "bg-accent text-foreground"
-                      : "text-foreground hover:bg-accent/50 active:bg-accent"
+                    appNavItemClass,
+                    "min-h-12 px-4",
+                    isActivePath(pathname, "/admin")
+                      ? appNavItemActiveClass
+                      : appNavItemInactiveClass
                   )}
                 >
-                  {label}
+                  <Shield className="size-4 shrink-0" aria-hidden />
+                  Admin
                 </Link>
-              );
-            })}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setMenuOpen(false)}
-                className={cn(
-                  "flex min-h-[48px] items-center gap-2 px-4 rounded-lg font-medium transition-colors touch-manipulation",
-                  isActivePath(pathname, "/admin")
-                    ? "bg-accent text-foreground"
-                    : "text-foreground hover:bg-accent/50 active:bg-accent"
-                )}
-              >
-                <Shield className="size-4" aria-hidden />
-                Admin
-              </Link>
-            )}
-            <div className="flex min-h-[48px] items-center px-4">
-              <ThemeToggle />
+              ) : null}
             </div>
-            <form action={logout} className="block">
-              <button
-                type="submit"
-                className="flex w-full min-h-[48px] items-center px-4 rounded-lg text-left text-muted-foreground font-medium hover:bg-accent/50 hover:text-foreground active:bg-accent transition-colors touch-manipulation"
+            <div className="sticky bottom-0 shrink-0 border-t border-border/50 bg-background/95 p-3 backdrop-blur-sm space-y-2">
+              <Link
+                href="/settings#unlock-options"
+                onClick={() => setMenuOpen(false)}
+                className={cn(appNavItemClass, "min-h-12 px-4", appNavItemInactiveClass)}
               >
-                Log out
-              </button>
-            </form>
+                <ArrowUpCircle className="size-4 shrink-0" aria-hidden />
+                Upgrade
+              </Link>
+              <form action={logout} className="block">
+                <button
+                  type="submit"
+                  className={cn(
+                    appNavItemClass,
+                    "min-h-12 w-full px-4 text-left",
+                    appNavItemInactiveClass
+                  )}
+                >
+                  Log out
+                </button>
+              </form>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

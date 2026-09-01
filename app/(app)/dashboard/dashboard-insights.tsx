@@ -12,6 +12,8 @@ import { Gated } from "@/components/billing/Gated";
 import { LockedOverlay } from "@/components/billing/LockedOverlay";
 import { WeeklyTrendChart } from "./weekly-trend-chart";
 import { PhaseCompletionChart } from "./phase-completion-chart";
+import { appSectionLabelClass, appSurfaceCardClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 type DashboardInsightsProps = {
   canSeeCharts: boolean;
@@ -19,31 +21,30 @@ type DashboardInsightsProps = {
   phaseCompletion: PhaseCompletionPoint[];
 };
 
-/**
- * Insights stay available but collapsed by default to cut above-the-fold noise.
- */
 export function DashboardInsights({
   canSeeCharts,
   weeklyTrend,
   phaseCompletion,
 }: DashboardInsightsProps) {
   return (
-    <Accordion type="single" collapsible className="w-full border-t border-border/50 pt-2">
+    <Accordion
+      type="single"
+      collapsible
+      className={cn("w-full overflow-hidden", appSurfaceCardClass)}
+    >
       <AccordionItem value="insights" className="border-none">
-        <AccordionTrigger className="py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:no-underline">
+        <AccordionTrigger className="px-5 py-4 text-sm font-bold text-foreground hover:no-underline data-[state=open]:border-b data-[state=open]:border-border/50">
           Insights
         </AccordionTrigger>
-        <AccordionContent>
-          <div className="grid gap-6 sm:grid-cols-2 pb-2">
+        <AccordionContent className="px-5 pb-5">
+          <div className="grid gap-6 sm:grid-cols-2">
             <div className="min-h-0">
-              <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
-                Weekly minutes
-              </h3>
+              <h3 className={cn(appSectionLabelClass, "mb-3")}>Weekly minutes</h3>
               <Gated
                 allowed={canSeeCharts}
                 fallback={
                   <div className="relative min-h-[180px]">
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 rounded-xl">
                       <LockedOverlay
                         title="Insights locked"
                         body="Upgrade to Pro for weekly trends."
@@ -61,14 +62,12 @@ export function DashboardInsights({
               </Gated>
             </div>
             <div className="min-h-0">
-              <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
-                Phase completion
-              </h3>
+              <h3 className={cn(appSectionLabelClass, "mb-3")}>Phase completion</h3>
               <Gated
                 allowed={canSeeCharts}
                 fallback={
                   <div className="relative min-h-[180px]">
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70 rounded-xl">
                       <LockedOverlay
                         title="Breakdown locked"
                         body="Upgrade to Pro for phase insights."
@@ -95,9 +94,12 @@ export function DashboardInsights({
             </div>
           </div>
           {!canSeeCharts ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-4">
               Charts are a Pro feature.{" "}
-              <Link href="/settings" className="text-primary hover:underline">
+              <Link
+                href="/settings"
+                className="font-semibold text-foreground underline-offset-4 hover:underline"
+              >
                 Upgrade
               </Link>
             </p>

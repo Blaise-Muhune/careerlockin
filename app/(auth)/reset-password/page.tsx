@@ -11,14 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthCard } from "@/components/auth/AuthCard";
+import { appPrimaryButtonClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { AuthMessage } from "@/components/auth/AuthMessage";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 
 const resetSchema = z
   .object({
@@ -79,18 +83,21 @@ export default function ResetPasswordPage() {
 
   if (hasSession === null) {
     return (
-      <Card className="w-full max-w-md shadow-sm border-border">
+      <AuthPageShell width="narrow">
+      <AuthCard>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
           <p className="mt-3 text-sm text-muted-foreground">Loading…</p>
         </CardContent>
-      </Card>
+      </AuthCard>
+      </AuthPageShell>
     );
   }
 
   if (!hasSession) {
     return (
-      <Card className="w-full max-w-md shadow-sm border-border">
+      <AuthPageShell width="narrow">
+      <AuthCard>
         <CardHeader>
           <CardTitle className="text-xl">Reset password</CardTitle>
           <CardDescription>
@@ -103,19 +110,21 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex flex-col gap-4">
-          <Button asChild className="w-full" size="default">
+          <Button asChild className={cn("w-full rounded-full", appPrimaryButtonClass)}>
             <Link href="/forgot-password">Request reset link</Link>
           </Button>
-          <Button asChild variant="ghost" className="w-full" size="default">
+          <Button asChild variant="ghost" className="w-full rounded-full" size="default">
             <Link href="/login">Back to sign in</Link>
           </Button>
         </CardFooter>
-      </Card>
+      </AuthCard>
+      </AuthPageShell>
     );
   }
 
   return (
-    <Card className="w-full max-w-md shadow-sm border-border">
+    <AuthPageShell width="narrow">
+    <AuthCard>
       <CardHeader className="space-y-1.5">
         <div className="flex items-center gap-2">
           <div
@@ -134,21 +143,14 @@ export default function ResetPasswordPage() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="flex flex-col gap-5">
-          {submitError && (
-            <div
-              className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive font-medium"
-              role="alert"
-            >
-              {submitError}
-            </div>
-          )}
+          {submitError && <AuthMessage>{submitError}</AuthMessage>}
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">New password</Label>
             <Input
               id="password"
               type="password"
               autoComplete="new-password"
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
               className="h-10"
               aria-invalid={Boolean(errors.password)}
               {...register("password")}
@@ -178,7 +180,7 @@ export default function ResetPasswordPage() {
         <CardFooter className="flex flex-col gap-4 pt-2">
           <Button
             type="submit"
-            className="w-full h-10"
+            className={`w-full h-11 ${appPrimaryButtonClass}`}
             disabled={isPending}
           >
             {isPending ? "Updating…" : "Update password"}
@@ -188,6 +190,7 @@ export default function ResetPasswordPage() {
           </Button>
         </CardFooter>
       </form>
-    </Card>
+    </AuthCard>
+    </AuthPageShell>
   );
 }

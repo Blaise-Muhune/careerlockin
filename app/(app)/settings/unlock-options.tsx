@@ -2,27 +2,26 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createRoadmapUnlockCheckout } from "@/app/actions/createRoadmapUnlockCheckout";
 import { createProSubscriptionCheckout } from "@/app/actions/createProSubscriptionCheckout";
 import { createBillingPortal } from "@/app/actions/createBillingPortal";
 import type { Entitlements } from "@/lib/server/billing/entitlements";
+import { SettingsCard } from "@/components/settings/SettingsCard";
+import { appMonoStatClass, appPrimaryButtonClass, appSectionLabelClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 type UnlockOptionsProps = {
   entitlements: Entitlements;
-  /** When true, user canceled Pro but still has access until period end; show Pro/Unlock again so they can resubscribe or one-time. */
   cancelAtPeriodEnd?: boolean;
+  /** Render beside the access summary on settings (no separate section). */
+  embedded?: boolean;
 };
 
 export function UnlockOptions({
   entitlements,
   cancelAtPeriodEnd = false,
+  embedded = false,
 }: UnlockOptionsProps) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"unlock" | "pro" | "portal" | null>(null);
@@ -66,60 +65,81 @@ export function UnlockOptions({
   const showUnlockPlan = !entitlements.canViewFullRoadmap;
   const showPro = !entitlements.isPro || cancelAtPeriodEnd;
   const showManageBilling = entitlements.isPro;
+  const hasActions = showUnlockPlan || showPro || showManageBilling;
 
   return (
-    <section id="unlock-options" className="space-y-4" aria-labelledby="unlock-options-heading">
-      <h2 id="unlock-options-heading" className="text-sm font-medium text-foreground">Unlock options</h2>
-      {error && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+    <div
+      id={embedded ? undefined : "unlock-options"}
+      className={cn("space-y-4", embedded && "h-full")}
+      aria-label="Unlock options"
+    >
+      {error ? (
+        <p
+          className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </p>
-      )}
-      <p className="text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">Roadmap Unlock</span> gives
-        full roadmap access and step tracking in every phase.
-        <span className="ml-1 font-medium text-foreground">Pro</span> adds time
-        logs, charts, insights, and multiple roadmaps.
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {showUnlockPlan && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Roadmap Unlock</CardTitle>
+      ) : null}
+      {!embedded ? (
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-foreground">Roadmap Unlock</span> opens every
+          phase with step tracking.{" "}
+          <span className="font-semibold text-foreground">Pro</span> adds time logs, charts,
+          insights, and multiple roadmaps.
+        </p>
+      ) : null}
+      {embedded && hasActions ? (
+        <p className={appSectionLabelClass}>Upgrade</p>
+      ) : null}
+      <div className={cn("grid gap-4", embedded ? "grid-cols-1" : "sm:grid-cols-2")}>
+        {showUnlockPlan ? (
+          <SettingsCard>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-bold">Roadmap Unlock</CardTitle>
               <CardDescription>
-                One-time purchase. See and check off all phases, steps, and
-                resources.
+                One-time purchase. See and check off all phases, steps, and resources.
               </CardDescription>
+              <p className={cn("text-2xl font-bold text-foreground pt-2", appMonoStatClass)}>
+                $29.99
+              </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
                 variant="secondary"
-                size="sm"
+                className="w-full sm:w-auto"
                 onClick={handleUnlock}
                 disabled={!!pending}
               >
                 {pending === "unlock" ? "Redirecting…" : "Unlock roadmap access"}
               </Button>
             </CardContent>
-          </Card>
-        )}
-        {showPro && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">
+          </SettingsCard>
+        ) : null}
+        {showPro ? (
+          <SettingsCard className="border-primary/20 bg-primary/[0.03]">
+            <CardHeader className="pb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+                {cancelAtPeriodEnd ? "Resubscribe" : "Recommended"}
+              </p>
+              <CardTitle className="text-lg font-bold">
                 {cancelAtPeriodEnd ? "Resubscribe to Pro" : "Upgrade to Pro"}
               </CardTitle>
               <CardDescription>
                 {cancelAtPeriodEnd
-                  ? "Resubscribe before your period ends to keep tracking and insights."
-                    : showUnlockPlan
-                    ? "Subscription includes full roadmap, step tracking, time logs, charts, and insights."
+                  ? "Keep tracking and insights before your period ends."
+                  : showUnlockPlan
+                    ? "Full roadmap plus time logs, charts, recap emails, and up to five roadmaps."
                     : "Unlock time logs, charts, and insights."}
               </CardDescription>
+              <p className={cn("text-2xl font-bold text-foreground pt-2", appMonoStatClass)}>
+                $9.99
+                <span className="text-sm font-normal text-muted-foreground">/month</span>
+              </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Button
-                size="sm"
+                className={cn("w-full sm:w-auto", appPrimaryButtonClass)}
                 onClick={handlePro}
                 disabled={!!pending}
               >
@@ -130,29 +150,30 @@ export function UnlockOptions({
                     : "Upgrade to Pro"}
               </Button>
             </CardContent>
-          </Card>
-        )}
-        {showManageBilling && (
-          <Card className="sm:col-span-2">
-            <CardContent className="flex flex-col gap-2 pt-6">
-              <p className="text-sm text-muted-foreground">
-                Manage payment methods, invoices, or cancel Pro. Cancellation is
-                handled in the Stripe billing portal; you keep Pro until the end
-                of the current period.
-              </p>
+          </SettingsCard>
+        ) : null}
+        {showManageBilling ? (
+          <SettingsCard className={embedded ? undefined : "sm:col-span-2"}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold">Manage billing</CardTitle>
+              <CardDescription>
+                Update payment methods, view invoices, or cancel Pro. You keep Pro until the
+                end of the current billing period.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
               <Button
                 variant="outline"
-                size="sm"
-                className="w-fit"
+                className="w-full sm:w-auto"
                 onClick={handlePortal}
                 disabled={!!pending}
               >
                 {pending === "portal" ? "Redirecting…" : "Manage billing / cancel"}
               </Button>
             </CardContent>
-          </Card>
-        )}
+          </SettingsCard>
+        ) : null}
       </div>
-    </section>
+    </div>
   );
 }

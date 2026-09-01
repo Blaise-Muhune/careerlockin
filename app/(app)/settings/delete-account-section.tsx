@@ -4,14 +4,9 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { deleteAccount } from "@/app/actions/account";
+import { SettingsCard } from "@/components/settings/SettingsCard";
 
 export function DeleteAccountSection() {
   const [confirmation, setConfirmation] = useState("");
@@ -29,15 +24,8 @@ export function DeleteAccountSection() {
   }
 
   return (
-    <Card className="border-destructive/30">
-      <CardHeader>
-        <CardTitle className="text-base text-destructive">Delete account</CardTitle>
-        <CardDescription>
-          Permanently deletes your account, roadmaps, and progress. Cancel any
-          Pro subscription in Manage billing first if you want to stop future charges.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SettingsCard danger>
+      <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="delete_confirm">Type DELETE to confirm</Label>
           <Input
@@ -45,23 +33,25 @@ export function DeleteAccountSection() {
             value={confirmation}
             onChange={(e) => setConfirmation(e.target.value)}
             autoComplete="off"
+            className="h-10 rounded-xl max-w-sm"
           />
         </div>
-        {error && (
+        {error ? (
           <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
-        )}
+        ) : null}
         <Button
           type="button"
           variant="destructive"
           size="sm"
+          className="rounded-xl"
           disabled={isPending || confirmation.trim().toUpperCase() !== "DELETE"}
           onClick={handleDelete}
         >
           {isPending ? "Deleting…" : "Delete my account"}
         </Button>
       </CardContent>
-    </Card>
+    </SettingsCard>
   );
 }

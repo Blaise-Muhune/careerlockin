@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   "/roadmaps",
   "/settings",
   "/onboarding",
+  "/get-started/finish",
   "/admin",
 ];
 

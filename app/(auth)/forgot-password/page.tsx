@@ -10,14 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthCard } from "@/components/auth/AuthCard";
+import { appPrimaryButtonClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 import { requestPasswordReset, type RequestPasswordResetState } from "@/app/actions/auth";
+import { AuthMessage } from "@/components/auth/AuthMessage";
+import { AuthPageShell } from "@/components/auth/AuthPageShell";
 
 const forgotSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email"),
@@ -42,7 +46,8 @@ export default function ForgotPasswordPage() {
   const showCheckEmail = state?.ok === true && state?.email;
 
   return (
-    <Card className="w-full max-w-md shadow-sm border-border">
+    <AuthPageShell width="narrow">
+    <AuthCard>
       {showCheckEmail ? (
         <>
           <CardHeader className="text-center pb-2">
@@ -66,7 +71,7 @@ export default function ForgotPasswordPage() {
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 pt-0">
-            <Button asChild className="w-full" size="default">
+            <Button asChild className={cn("w-full rounded-full", appPrimaryButtonClass)}>
               <Link href="/login">Back to sign in</Link>
             </Button>
           </CardFooter>
@@ -93,12 +98,7 @@ export default function ForgotPasswordPage() {
           <form action={formAction}>
             <CardContent className="flex flex-col gap-5">
               {state?.ok === false && state?.error && (
-                <div
-                  className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive font-medium"
-                  role="alert"
-                >
-                  {state.error}
-                </div>
+                <AuthMessage>{state.error}</AuthMessage>
               )}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
             <CardFooter className="flex flex-col gap-4 pt-2">
               <Button
                 type="submit"
-                className="w-full h-10"
+                className={`w-full h-11 ${appPrimaryButtonClass}`}
                 disabled={isPending}
               >
                 {isPending ? "Sending…" : "Send reset link"}
@@ -143,6 +143,7 @@ export default function ForgotPasswordPage() {
           </form>
         </>
       )}
-    </Card>
+    </AuthCard>
+    </AuthPageShell>
   );
 }

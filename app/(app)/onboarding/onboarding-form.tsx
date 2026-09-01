@@ -21,6 +21,16 @@ import {
   type OnboardingState,
 } from "@/app/actions/onboarding";
 import { cn } from "@/lib/utils";
+import { appSectionLabelClass, appPrimaryButtonClass } from "@/lib/layout/app";
+import {
+  formChipClass,
+  formChipSelectedClass,
+  formGoalTileClass,
+  formInputClass,
+  formLearningPrefClass,
+  formSelectClass,
+  formTextareaClass,
+} from "@/lib/layout/form";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   TARGET_ROLES,
@@ -115,7 +125,7 @@ export function OnboardingForm() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <User className="size-5 text-primary" aria-hidden />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               About you
             </h2>
           </div>
@@ -128,7 +138,7 @@ export function OnboardingForm() {
               type="text"
               autoComplete="name"
               placeholder="Jane Doe"
-              className="h-12 text-base"
+              className={formInputClass}
               aria-invalid={Boolean(errors.full_name ?? state?.fieldErrors?.full_name)}
               {...register("full_name")}
             />
@@ -144,7 +154,7 @@ export function OnboardingForm() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Map className="size-5 text-primary" aria-hidden />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               Target role
             </h2>
           </div>
@@ -156,10 +166,7 @@ export function OnboardingForm() {
                   type="button"
                   onClick={() => setValue("target_role", role, { shouldValidate: true })}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                    targetRole === role
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    targetRole === role ? formChipSelectedClass : formChipClass
                   )}
                 >
                   {role}
@@ -190,7 +197,7 @@ export function OnboardingForm() {
               <Label htmlFor="target_role_job_description" className="text-base">
                 Job description <span className="text-muted-foreground font-normal">(optional)</span>
               </Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Paste a job posting or describe the role. This helps us tailor your roadmap to real requirements.
               </p>
               <textarea
@@ -198,7 +205,7 @@ export function OnboardingForm() {
                 rows={4}
                 placeholder="e.g. Paste key requirements from a job posting, or describe the type of work you want to do…"
                 maxLength={2000}
-                className="flex w-full rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 resize-y min-h-[100px]"
+                className={formTextareaClass}
                 aria-invalid={Boolean(
                   errors.target_role_job_description ?? state?.fieldErrors?.target_role_job_description
                 )}
@@ -212,7 +219,7 @@ export function OnboardingForm() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Briefcase className="size-5 text-primary" aria-hidden />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               What&apos;s your goal?
             </h2>
           </div>
@@ -220,15 +227,10 @@ export function OnboardingForm() {
             {goalIntents.map((value) => (
               <label
                 key={value}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 cursor-pointer transition-all",
-                  goalIntent === value
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30 text-muted-foreground"
-                )}
+                className={formGoalTileClass(goalIntent === value)}
               >
                 <input type="radio" value={value} {...register("goal_intent")} className="sr-only" />
-                <span className="text-sm font-medium text-center">
+                <span className="text-sm sm:text-base font-medium text-center">
                   {value === "job" && "Land a job"}
                   {value === "internship" && "Internship"}
                   {value === "career_switch" && "Career switch"}
@@ -248,7 +250,7 @@ export function OnboardingForm() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Clock className="size-5 text-primary" aria-hidden />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               Pace & timeline
             </h2>
           </div>
@@ -263,11 +265,11 @@ export function OnboardingForm() {
                 min={1}
                 max={60}
                 placeholder="10"
-                className="h-12 text-base"
+                className={formInputClass}
                 aria-invalid={Boolean(errors.weekly_hours ?? state?.fieldErrors?.weekly_hours)}
                 {...register("weekly_hours", { valueAsNumber: true })}
               />
-              <p className="text-xs text-muted-foreground">How much time can you dedicate? (1–60)</p>
+              <p className="text-sm text-muted-foreground">How much time can you dedicate? (1–60)</p>
               {(errors.weekly_hours?.message ?? state?.fieldErrors?.weekly_hours) && (
                 <p className="text-sm text-destructive">
                   {errors.weekly_hours?.message ?? state?.fieldErrors?.weekly_hours}
@@ -280,9 +282,7 @@ export function OnboardingForm() {
               </Label>
               <select
                 id="target_timeline_weeks"
-                className={cn(
-                  "flex h-12 w-full rounded-md border border-input bg-background px-4 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
-                )}
+                className={formSelectClass}
                 aria-invalid={Boolean(
                   errors.target_timeline_weeks ?? state?.fieldErrors?.target_timeline_weeks
                 )}
@@ -303,7 +303,7 @@ export function OnboardingForm() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <List className="size-5 text-primary" aria-hidden />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               Where you&apos;re starting
             </h2>
           </div>
@@ -313,13 +313,11 @@ export function OnboardingForm() {
             </Label>
             <select
               id="current_level"
-              className={cn(
-                "flex h-12 w-full rounded-md border border-input bg-background px-4 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 max-w-xs"
-              )}
+              className={cn(formSelectClass, "max-w-xs")}
               aria-invalid={Boolean(errors.current_level ?? state?.fieldErrors?.current_level)}
               {...register("current_level", { setValueAs: (v) => (v === "" ? undefined : v) })}
             >
-              <option value="">—</option>
+              <option value="">Select level</option>
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>
               <option value="advanced">Advanced</option>
@@ -329,7 +327,7 @@ export function OnboardingForm() {
 
         {/* Prior exposure */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+          <h2 className={appSectionLabelClass}>
             Prior exposure <span className="text-muted-foreground font-normal">(optional)</span>
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -351,12 +349,7 @@ export function OnboardingForm() {
                         key={value}
                         type="button"
                         onClick={() => field.onChange(togglePrior(field.value, value))}
-                        className={cn(
-                          "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                          selected
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                        )}
+                        className={selected ? formChipSelectedClass : formChipClass}
                       >
                         {label}
                       </button>
@@ -372,7 +365,7 @@ export function OnboardingForm() {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <BookOpen className="size-5 text-primary" aria-hidden />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               Learning preference <span className="text-muted-foreground font-normal">(optional)</span>
             </h2>
           </div>
@@ -380,10 +373,7 @@ export function OnboardingForm() {
             {learningPreferences.map(({ value, label }) => (
               <label
                 key={value}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors",
-                  "border-border bg-card hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                )}
+                className={formLearningPrefClass}
               >
                 <input
                   type="radio"
@@ -391,15 +381,20 @@ export function OnboardingForm() {
                   {...register("learning_preference", { setValueAs: (v) => (v === "" ? "" : v) })}
                   className="rounded-full border-input size-4"
                 />
-                <span className="text-sm font-medium">{label}</span>
+                <span className="text-sm sm:text-base font-medium">{label}</span>
               </label>
             ))}
           </div>
         </section>
       </div>
 
-      <div className="mt-12 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-end pt-8 border-t border-border">
-        <Button type="submit" size="lg" disabled={isPending} className="min-w-[200px]">
+      <div className="mt-10 sm:mt-12 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-end pt-8 border-t border-border">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isPending}
+          className={cn("w-full sm:w-auto sm:min-w-[200px] rounded-full min-h-12 text-base touch-manipulation", appPrimaryButtonClass)}
+        >
           {isPending ? (
             "Saving…"
           ) : (

@@ -1,0 +1,54 @@
+---
+description: UI/visual design — calm B2B SaaS, anti-slop, tokens, charts
+globs: "**/*.{tsx,css}"
+alwaysApply: false
+---
+
+# CareerLockin design system
+
+Applies to marketing pages, app shell, roadmap UI, dashboard, and settings. See `docs/landing.md` for copy tone.
+
+## Brand & tone
+
+- Calm, confident, direct. Clarity over overload — the product sells one clear path, not hype.
+- Human-first copy: avoid "AI-powered", "revolutionary", "game-changing", urgency/countdowns, fake testimonials.
+- Progress tracking is optional — do not sell commitment theater; tracking is for users who want it.
+- Prefer short sentences. No em-dash filler. No invented social proof or logos.
+
+## Visual language
+
+- Typography: Geist (`font-sans` / `--font-geist-sans`). Headings `font-semibold tracking-tight`. Body `text-muted-foreground` for secondary text.
+- Color: use CSS variables from `app/globals.css` only (`background`, `foreground`, `primary`, `muted`, `border`, `card`, `success`, `chart-*`). No ad-hoc hex/rgb, purple gradients, glassmorphism, or neon accents.
+- Spacing: consistent section rhythm (`py-16 sm:py-24`), container `max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 sm:px-6`. Prefer whitespace over cramming.
+- Components: import from `@/components/ui/*` (shadcn). Do not add new UI libraries without explicit request.
+- Icons: Lucide, sparingly. One icon per list row or section label is enough.
+- Motion: subtle only (hover/focus). No autoplay, parallax, or scroll-jacking.
+
+## Layout anti-patterns (AI slop)
+
+- Do not default to hero → three equal feature cards → pricing → footer for every page.
+- Avoid identical card grids when a list, timeline, or single focal preview works better.
+- One primary CTA per viewport section. Secondary actions use `variant="secondary"` or text links.
+- Marketing: show the product early (preview/mock) before repeating tier bullets.
+- App UI: one primary action per step/screen; progressive disclosure (accordions, collapsibles) over walls of cards.
+
+## Charts & data (Recharts)
+
+- Library: Recharts only (see `app/(app)/dashboard/*-chart.tsx`).
+- Style: `var(--chart-1)` … `var(--chart-5)` fills; `var(--muted-foreground)` axis ticks; minimal gridlines (`axisLine={false}`, `tickLine={false}`).
+- Prefer bar/line for trends; avoid pie charts and 3D. Max 2 chart types per dashboard view.
+- KPI cards: one number, one label, optional small trend — no rainbow stat grids.
+- Empty/loading/error states required for async chart data.
+
+## Surface-specific notes
+
+- **Landing** (`app/page.tsx`, `components/marketing/**`): scannable sections, product preview, single pricing block, calm FAQ accordion.
+- **Roadmap** (`app/(app)/roadmap/**`): phase accordions, step detail modals — match existing patterns; avoid badge soup.
+- **Dashboard** (`app/(app)/dashboard/**`): insights behind Pro gate; charts stay readable in light and dark mode.
+- **Onboarding**: short forms, clear progress — reduce choices per step.
+
+## Before shipping UI changes
+
+- Match surrounding files' patterns and naming.
+- Ensure light + dark mode both look intentional (test `html.dark`).
+- Run `pnpm lint` and `pnpm typecheck`.

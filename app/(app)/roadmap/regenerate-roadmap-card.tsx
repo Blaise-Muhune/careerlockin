@@ -25,6 +25,19 @@ import {
   ROLE_QUICK_ADD,
   PRIOR_EXPOSURE_QUICK_ADD,
 } from "@/lib/roadmap-options";
+import {
+  appMonoStatClass,
+  appNestedSurfaceClass,
+  appPrimaryButtonClass,
+  appSectionLabelClass,
+  appSurfaceCardClass,
+} from "@/lib/layout/app";
+import {
+  formAiProofModuleCheckboxLabel,
+  formAiProofModuleDescription,
+  formAiProofModuleRegenCheckboxLabel,
+  formAiProofModuleTitle,
+} from "@/lib/layout/form";
 import { cn } from "@/lib/utils";
 import type { ProfileForRoadmapEdit } from "@/lib/server/db/profiles";
 
@@ -114,11 +127,11 @@ export function RegenerateRoadmapCard({
 
   if (!canRegenerate) {
     return (
-      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-        You&apos;ve used all {maxRegenerations} regeneration
-        {maxRegenerations === 1 ? "" : "s"} for this roadmap.
+      <div className={cn(appSurfaceCardClass, "px-4 py-4 text-sm text-muted-foreground")}>
+        You&apos;ve used all {maxRegenerations} refresh
+        {maxRegenerations === 1 ? "" : "es"} for this roadmap.
         {maxRegenerations < 3
-          ? " Upgrade to Pro for up to 3 regenerations per roadmap."
+          ? " Upgrade to Pro for up to 3 refreshes per roadmap."
           : ""}
       </div>
     );
@@ -127,18 +140,18 @@ export function RegenerateRoadmapCard({
   return (
     <>
       {isPending && <RoadmapGeneratingOverlay />}
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="regenerate" className="rounded-xl border border-border">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline">
-            <div className="flex items-center gap-2">
-              <RotateCw className="size-4 text-muted-foreground" aria-hidden />
-              <span className="font-medium">Edit & Regenerate</span>
-              <span className="text-sm font-normal text-muted-foreground">
-                — {remaining} regeneration{remaining === 1 ? "" : "s"} left
+      <Accordion type="single" collapsible className={cn("w-full overflow-hidden", appSurfaceCardClass)}>
+        <AccordionItem value="regenerate" className="border-none">
+          <AccordionTrigger className="px-5 py-4 hover:no-underline data-[state=open]:border-b data-[state=open]:border-border/50">
+            <div className="flex flex-wrap items-center gap-2 text-left">
+              <RotateCw className="size-4 text-primary shrink-0" aria-hidden />
+              <span className="font-bold text-foreground">Edit and refresh plan</span>
+              <span className={cn("text-sm font-normal text-muted-foreground", appMonoStatClass)}>
+                {remaining} left
               </span>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="px-4">
+          <AccordionContent className="px-5 pb-5">
             <form action={formAction} className="space-y-4">
               <input type="hidden" name="roadmap_id" value={roadmapId} />
               {state && !state.ok && (
@@ -321,17 +334,16 @@ export function RegenerateRoadmapCard({
                   ))}
                 </div>
               </div>
-              <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <div className={cn(appNestedSurfaceClass, "p-4")}>
                 <div className="flex gap-3">
                   <ShieldCheck className="size-5 shrink-0 text-primary mt-0.5" aria-hidden />
                   <div className="space-y-2 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">AI-proof module</span>
-                      <span className="text-xs font-medium text-muted-foreground">Optional</span>
+                      <span className="text-sm font-bold text-foreground">{formAiProofModuleTitle}</span>
+                      <span className={appSectionLabelClass}>Optional</span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Adds a final phase on judgment, verification, and portfolio proof so the roadmap
-                      reflects hireability alongside AI tools.
+                      {formAiProofModuleDescription}
                     </p>
                     <label className="flex cursor-pointer items-start gap-2 text-sm">
                       <input
@@ -340,13 +352,13 @@ export function RegenerateRoadmapCard({
                         value="on"
                         className="mt-0.5 size-4 rounded border-input shrink-0"
                       />
-                      <span>Include AI-proof phase in regenerated roadmap</span>
+                      <span>{formAiProofModuleRegenCheckboxLabel}</span>
                     </label>
                   </div>
                 </div>
               </div>
-              <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-                {isPending ? "Regenerating…" : "Regenerate roadmap"}
+              <Button type="submit" disabled={isPending} className={cn("w-full sm:w-auto", appPrimaryButtonClass)}>
+                {isPending ? "Refreshing…" : "Refresh roadmap"}
               </Button>
             </form>
           </AccordionContent>

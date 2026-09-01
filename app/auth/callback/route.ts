@@ -3,10 +3,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getEnv } from "@/lib/server/env";
 
-/**
- * OAuth callback: exchange code for session and redirect.
- * Add https://yourdomain.com/auth/callback to Supabase Auth → URL Configuration.
- */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -45,6 +41,25 @@ export async function GET(request: NextRequest) {
         requestUrl.origin
       )
     );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      response.headers.set(
+        "Location",
+        new URL("/get-started/finish", requestUrl.origin).toString()
+      );
+    }
   }
 
   return response;

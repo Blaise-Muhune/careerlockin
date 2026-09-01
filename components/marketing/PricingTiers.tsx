@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { appMonoStatClass } from "@/lib/layout/app";
+import { marketingFeatureCardClass, marketingPrimaryCtaClass } from "@/lib/layout/marketing";
 import { cn } from "@/lib/utils";
 
 /** Where CTAs should send users (public pricing vs logged-out landing). */
@@ -7,6 +9,8 @@ export type PricingCtaContext = "guest" | "onboarding" | "app";
 
 type PricingTiersProps = {
   className?: string;
+  /** Show loud Pro highlight (pricing page). Softer on landing. */
+  emphasizePro?: boolean;
   /**
    * guest: CTAs go to /signup.
    * onboarding: user is signed in but has no profile yet — continue setup first.
@@ -18,9 +22,13 @@ type PricingTiersProps = {
 /**
  * Shared Free / Roadmap Unlock / Pro cards (landing + /pricing).
  */
-export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersProps) {
+export function PricingTiers({
+  className,
+  emphasizePro = true,
+  ctaContext = "guest",
+}: PricingTiersProps) {
   const freeHref =
-    ctaContext === "app" ? "/dashboard" : ctaContext === "onboarding" ? "/onboarding" : "/signup";
+    ctaContext === "app" ? "/dashboard" : ctaContext === "onboarding" ? "/get-started" : "/get-started";
   const freeLabel =
     ctaContext === "app"
       ? "Open dashboard"
@@ -29,7 +37,7 @@ export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersPr
         : "Get started free";
 
   const paidHref =
-    ctaContext === "app" ? "/settings#unlock-options" : ctaContext === "onboarding" ? "/onboarding" : "/signup";
+    ctaContext === "app" ? "/settings#unlock-options" : ctaContext === "onboarding" ? "/get-started" : "/get-started";
   const unlockLabel =
     ctaContext === "app"
       ? "Buy Roadmap Unlock"
@@ -45,54 +53,64 @@ export function PricingTiers({ className, ctaContext = "guest" }: PricingTiersPr
 
   return (
     <div
-      className={cn("grid sm:grid-cols-3 gap-6 sm:gap-8", className)}
+      className={cn("grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8", className)}
       role="list"
     >
       <div
-        className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm"
+        className={cn(marketingFeatureCardClass, "flex flex-col")}
         role="listitem"
       >
-        <h3 className="font-medium text-foreground text-base">Free</h3>
-        <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">$0</p>
+        <h3 className="font-bold text-foreground text-base">Free</h3>
+        <p className={cn("text-2xl font-bold text-foreground mt-2", appMonoStatClass)}>$0</p>
         <p className="text-sm text-muted-foreground mt-2">
           One roadmap, Phase 1 in full, and a preview of later phases. No card
           required.
         </p>
-        <Button asChild variant="secondary" className="mt-6 w-full">
+        <Button asChild variant="secondary" className="mt-6 w-full min-h-11 rounded-xl text-base touch-manipulation">
           <Link href={freeHref}>{freeLabel}</Link>
         </Button>
       </div>
       <div
-        className="rounded-xl border border-border bg-card p-6 flex flex-col shadow-sm"
+        className={cn(marketingFeatureCardClass, "flex flex-col")}
         role="listitem"
       >
-        <h3 className="font-medium text-foreground text-base">Roadmap Unlock</h3>
-        <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">$29.99</p>
+        <h3 className="font-bold text-foreground text-base">Roadmap Unlock</h3>
+        <p className={cn("text-2xl font-bold text-foreground mt-2", appMonoStatClass)}>$29.99</p>
         <p className="text-sm text-muted-foreground mt-1">One-time</p>
         <p className="text-sm text-muted-foreground mt-2">
           Full roadmap plus step tracking in every phase. Lifetime access to that
           plan. Time logs and charts require Pro.
         </p>
-        <Button asChild variant="secondary" className="mt-6 w-full">
+        <Button asChild variant="secondary" className="mt-6 w-full min-h-11 rounded-xl text-base touch-manipulation">
           <Link href={paidHref}>{unlockLabel}</Link>
         </Button>
       </div>
       <div
-        className="rounded-xl border-2 border-primary/30 bg-primary/4 p-6 flex flex-col shadow-sm"
+        className={cn(
+          marketingFeatureCardClass,
+          "flex flex-col",
+          emphasizePro && "border-primary/25 bg-primary/[0.03]"
+        )}
         role="listitem"
       >
-        <span className="text-xs font-medium uppercase tracking-wide text-primary">
-          Recommended
-        </span>
-        <h3 className="font-medium text-foreground text-base mt-1">Pro</h3>
-        <p className="text-2xl font-semibold tabular-nums text-foreground mt-2">
+        {emphasizePro ? (
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+            Recommended
+          </span>
+        ) : (
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Subscription
+          </span>
+        )}
+        <h3 className="font-bold text-foreground text-base mt-1">Pro</h3>
+        <p className={cn("text-2xl font-bold text-foreground mt-2", appMonoStatClass)}>
           $9.99<span className="text-sm font-normal text-muted-foreground">/month</span>
         </p>
         <p className="text-sm text-muted-foreground mt-2">
           Everything in Roadmap Unlock plus time logs in all phases, charts and
-          insights, recap emails, up to five roadmaps, and more regenerations.
+          insights, recap emails, up to five roadmaps, and more roadmap refreshes.
         </p>
-        <Button asChild className="mt-6 w-full">
+        <Button asChild className={cn("mt-6 w-full min-h-11 rounded-xl text-base touch-manipulation", emphasizePro && marketingPrimaryCtaClass)}>
           <Link href={paidHref}>{proLabel}</Link>
         </Button>
       </div>

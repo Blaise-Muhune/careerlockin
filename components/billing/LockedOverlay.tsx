@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  appEyebrowClass,
+  appPrimaryButtonClass,
+  appSurfaceCardClass,
+} from "@/lib/layout/app";
 import { cn } from "@/lib/utils";
 
 export type LockedOverlayProps = {
@@ -34,36 +39,41 @@ export function LockedOverlay({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-lg border bg-card/80 px-4 py-5 text-center shadow-sm backdrop-blur-sm",
+        appSurfaceCardClass,
+        "flex flex-col items-center justify-center gap-3 px-5 py-6 text-center backdrop-blur-sm",
         className
       )}
     >
-      <div className="flex items-center justify-center gap-2 text-muted-foreground text-[11px] font-medium uppercase tracking-wide">
-        <Lock className="size-4" aria-hidden />
+      <div className={cn("flex items-center justify-center gap-2", appEyebrowClass)}>
+        <Lock className="size-3.5" aria-hidden />
         <span>Locked preview</span>
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground max-w-sm">{body}</p>
+        <p className="text-sm font-bold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">{body}</p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
         {primaryCtaLabel &&
           (hasPrimaryLink ? (
-            <Button size="sm" asChild>
+            <Button size="sm" asChild className={cn("rounded-full", appPrimaryButtonClass)}>
               <Link href={primaryHref!}>{primaryCtaLabel}</Link>
             </Button>
           ) : (
-            <Button size="sm" onClick={onPrimaryCta}>
+            <Button
+              size="sm"
+              onClick={onPrimaryCta}
+              className={cn("rounded-full", appPrimaryButtonClass)}
+            >
               {primaryCtaLabel}
             </Button>
           ))}
         {secondaryCtaLabel &&
           (hasSecondaryLink ? (
-            <Button size="sm" variant="secondary" asChild>
+            <Button size="sm" variant="outline" asChild className="rounded-full">
               <Link href={secondaryHref!}>{secondaryCtaLabel}</Link>
             </Button>
           ) : (
-            <Button size="sm" variant="secondary" onClick={onSecondaryCta}>
+            <Button size="sm" variant="outline" onClick={onSecondaryCta} className="rounded-full">
               {secondaryCtaLabel}
             </Button>
           ))}
@@ -71,4 +81,3 @@ export function LockedOverlay({
     </div>
   );
 }
-

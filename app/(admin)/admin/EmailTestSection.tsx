@@ -16,6 +16,8 @@ import {
   type EmailJobResult,
 } from "@/app/actions/testEmailJobs";
 import { Mail, Loader2 } from "lucide-react";
+import { appSurfaceCardClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 function ResultDisplay({ result }: { result: EmailJobResult | null }) {
   if (!result) return null;
@@ -87,7 +89,7 @@ export function EmailTestSection() {
   }
 
   return (
-    <Card className="border-muted">
+    <Card className={cn(appSurfaceCardClass, "border-border/60")}>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Mail className="size-4" aria-hidden />
@@ -104,7 +106,7 @@ export function EmailTestSection() {
             size="sm"
             onClick={runWeekly}
             disabled={loading !== null}
-            className="gap-2"
+            className="gap-2 rounded-full"
           >
             {loading === "weekly" ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -116,7 +118,7 @@ export function EmailTestSection() {
             size="sm"
             onClick={runInactivity}
             disabled={loading !== null}
-            className="gap-2"
+            className="gap-2 rounded-full"
           >
             {loading === "inactivity" ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -128,7 +130,7 @@ export function EmailTestSection() {
             size="sm"
             onClick={runMilestones}
             disabled={loading !== null}
-            className="gap-2"
+            className="gap-2 rounded-full"
           >
             {loading === "milestones" ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />

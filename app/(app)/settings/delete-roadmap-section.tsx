@@ -3,14 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteRoadmap } from "@/app/actions/account";
+import { SettingsCard } from "@/components/settings/SettingsCard";
+import { appMonoStatClass, appNestedSurfaceClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 type RoadmapRow = { id: string; target_role: string; created_at: string };
 
@@ -27,11 +24,7 @@ export function DeleteRoadmapSection({ roadmaps }: DeleteRoadmapSectionProps) {
   if (roadmaps.length === 0) return null;
 
   function handleDelete(id: string, role: string) {
-    if (
-      !window.confirm(
-        `Delete roadmap for “${role}”? This cannot be undone.`
-      )
-    ) {
+    if (!window.confirm(`Delete roadmap for "${role}"? This cannot be undone.`)) {
       return;
     }
     setError(null);
@@ -48,28 +41,29 @@ export function DeleteRoadmapSection({ roadmaps }: DeleteRoadmapSectionProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Your roadmaps</CardTitle>
-        <CardDescription>
-          Delete a roadmap to free a slot (Pro allows up to 5).
-        </CardDescription>
+    <SettingsCard>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-bold">Your roadmaps</CardTitle>
+        <CardDescription>Delete a roadmap to free a slot. Pro allows up to 5.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {error && (
+      <CardContent className="space-y-3 pt-0">
+        {error ? (
           <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
-        )}
+        ) : null}
         <ul className="space-y-2">
           {roadmaps.map((r) => (
             <li
               key={r.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-3 py-2"
+              className={cn(
+                appNestedSurfaceClass,
+                "flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              )}
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{r.target_role}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="truncate text-sm font-semibold text-foreground">{r.target_role}</p>
+                <p className={cn("text-xs text-muted-foreground", appMonoStatClass)}>
                   {new Date(r.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -77,6 +71,7 @@ export function DeleteRoadmapSection({ roadmaps }: DeleteRoadmapSectionProps) {
                 type="button"
                 variant="outline"
                 size="sm"
+                className="rounded-xl"
                 disabled={isPending}
                 onClick={() => handleDelete(r.id, r.target_role)}
               >
@@ -86,6 +81,6 @@ export function DeleteRoadmapSection({ roadmaps }: DeleteRoadmapSectionProps) {
           ))}
         </ul>
       </CardContent>
-    </Card>
+    </SettingsCard>
   );
 }

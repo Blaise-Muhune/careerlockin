@@ -26,6 +26,7 @@ import { toggleStep } from "@/app/actions/toggleStep";
 import type { MessageDraft } from "@/lib/networking/draftTypes";
 import type { RoadmapWithSteps } from "@/lib/server/db/roadmaps";
 import type { CurrentWorkStatus } from "@/lib/server/db/currentWork";
+import { appNestedSurfaceClass, appPrimaryButtonClass } from "@/lib/layout/app";
 import { cn } from "@/lib/utils";
 
 type Step = RoadmapWithSteps["steps"][number];
@@ -251,7 +252,7 @@ export function StepDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "flex max-h-[88dvh] w-[min(96vw,28rem)] max-w-none flex-col gap-0 p-0",
+          "flex max-h-[88dvh] w-[min(96vw,28rem)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border-border/60 p-0 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.22)]",
           "sm:w-[min(92vw,40rem)] sm:max-w-2xl",
           "md:max-h-[90dvh] md:w-[min(90vw,48rem)] md:max-w-3xl",
           "lg:w-[min(85vw,56rem)] lg:max-w-4xl"
@@ -260,7 +261,7 @@ export function StepDetailModal({
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <DialogHeader className="shrink-0 space-y-2 px-4 pt-4 sm:px-6 sm:pt-6 md:px-8 md:pt-6">
-            <DialogTitle className="pr-10 text-lg sm:pr-8 md:text-xl">{step.title}</DialogTitle>
+            <DialogTitle className="pr-10 text-xl font-bold sm:pr-8 md:text-2xl">{step.title}</DialogTitle>
             <DialogDescription asChild>
               {isLockedView ? (
                 <p className="text-sm text-muted-foreground">
@@ -355,7 +356,7 @@ export function StepDetailModal({
                   <AccordionContent className="pb-4 pt-0">
                     <div className="space-y-4">
                       {phaseProject && (
-                        <div className="rounded-xl border border-border/50 bg-muted/10 p-4">
+                        <div className={cn(appNestedSurfaceClass, "p-4")}>
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <span className="rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide bg-primary/15 text-primary">Project</span>
                             <span className="text-sm font-medium text-foreground">{phaseProject.title}</span>
@@ -384,7 +385,7 @@ export function StepDetailModal({
                       {practices.length > 0 && (
                         <div className="space-y-3">
                           {practices.map((p) => (
-                            <div key={`${p.type}:${p.title}`} className="rounded-xl border border-border/50 bg-background p-3">
+                            <div key={`${p.type}:${p.title}`} className={cn(appNestedSurfaceClass, "p-3")}>
                               <div className="flex flex-wrap items-center gap-2 mb-1">
                                 <span
                                   className={cn(
@@ -447,15 +448,15 @@ export function StepDetailModal({
             <>
               <Button
                 onClick={() => onOpenChange(false)}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                className="min-h-[44px] touch-manipulation"
+                className="min-h-[44px] touch-manipulation rounded-full"
               >
                 Close
               </Button>
               <CheckoutCtas
-                unlockVariant="default"
-                proVariant="outline"
+                unlockVariant="outline"
+                proVariant="default"
                 buttonClassName="min-h-[44px] touch-manipulation"
               />
             </>
@@ -469,14 +470,14 @@ export function StepDetailModal({
             <Button
               onClick={handleComplete}
               disabled={isPending}
-              className="min-h-[44px] gap-2 touch-manipulation"
+              className={cn("min-h-[44px] gap-2 touch-manipulation rounded-full", appPrimaryButtonClass)}
             >
               <Check className="size-4" aria-hidden />
               {isPending ? "Saving…" : "Complete"}
             </Button>
           )}
           {!isLockedView && canUseTracking && status === "not_started" && (
-            <Button variant="secondary" onClick={handleStartStep} disabled={isPending} className="min-h-[44px] touch-manipulation">
+            <Button variant="outline" onClick={handleStartStep} disabled={isPending} className="min-h-[44px] touch-manipulation rounded-full">
               {isPending ? "Starting…" : "Start"}
             </Button>
           )}
@@ -485,14 +486,19 @@ export function StepDetailModal({
               variant="outline"
               onClick={() => handleSetStatus("paused")}
               disabled={isPending}
-              className="min-h-[44px] touch-manipulation"
+              className="min-h-[44px] touch-manipulation rounded-full"
             >
               {isPending ? "…" : "Pause"}
             </Button>
           )}
           {!isLockedView && canUseTracking && status === "paused" && (
             <>
-              <Button variant="secondary" onClick={() => handleSetStatus("in_progress")} disabled={isPending} className="min-h-[44px] touch-manipulation">
+              <Button
+                variant="default"
+                onClick={() => handleSetStatus("in_progress")}
+                disabled={isPending}
+                className={cn("min-h-[44px] touch-manipulation rounded-full", appPrimaryButtonClass)}
+              >
                 {isPending ? "…" : "Resume"}
               </Button>
               <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending} className="min-h-[44px] touch-manipulation">

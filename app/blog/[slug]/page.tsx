@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { MarketingPage } from "@/components/layout/MarketingPage";
+import { marketingFeatureCardClass, marketingSectionTitleClass } from "@/lib/layout/marketing";
 import { siteUrl } from "@/lib/seo/site";
 import {
   getPostBySlug,
   getAllSlugs,
   type BlogPost,
 } from "@/lib/blog/posts";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -34,27 +36,30 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-        <time
-          dateTime={post.date}
-          className="text-sm text-muted-foreground"
+    <MarketingPage width="content" eyebrow="Blog">
+      <p className="mb-6">
+        <Link
+          href="/blog"
+          className="text-sm font-semibold text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
         >
-          {formatDate(post.date)}
-        </time>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
-          {post.title}
-        </h1>
-        <div className="mt-8 text-foreground">
-          <PostBody content={post.content} />
-        </div>
-        <div className="mt-12">
-          <Button asChild variant="secondary">
-            <Link href="/blog">Back to blog</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
+          Back to blog
+        </Link>
+      </p>
+      <article className={cn(marketingFeatureCardClass, "space-y-6")}>
+        <header>
+          <time
+            dateTime={post.date}
+            className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground"
+          >
+            {formatDate(post.date)}
+          </time>
+          <h1 className={cn(marketingSectionTitleClass, "mt-3 text-left text-2xl sm:text-3xl")}>
+            {post.title}
+          </h1>
+        </header>
+        <PostBody content={post.content} />
+      </article>
+    </MarketingPage>
   );
 }
 
@@ -73,12 +78,12 @@ function PostBody({ content }: { content: BlogPost["content"] }) {
     .split(/\n\n+/)
     .filter(Boolean);
   return (
-    <>
+    <div className="space-y-4">
       {paragraphs.map((p, i) => (
-        <p key={i} className="mb-4 text-muted-foreground leading-relaxed">
+        <p key={i} className="text-muted-foreground leading-relaxed">
           {p}
         </p>
       ))}
-    </>
+    </div>
   );
 }

@@ -593,7 +593,7 @@ export async function generateRoadmap(
 
     const apiKey = getEnv().OPENAI_API_KEY;
     if (!apiKey) {
-      return { ok: false, error: "OpenAI is not configured." };
+      return { ok: false, error: "Roadmap builder is not configured. Please contact support." };
     }
 
     const openai = new OpenAI({ apiKey });
@@ -699,7 +699,7 @@ export async function generateRoadmap(
     }
 
     if (!parsed || !response) {
-      return { ok: false, error: "Failed to generate roadmap after retries." };
+      return { ok: false, error: "Could not build your roadmap after retries. Please try again." };
     }
 
     const parseResult = roadmapJsonSchema.safeParse(parsed);
@@ -792,14 +792,14 @@ export async function generateRoadmap(
       return {
         ok: false,
         error:
-          "Roadmap generation is temporarily unavailable (database upgrade pending). Please try again shortly.",
+          "Roadmap building is temporarily unavailable. Please try again shortly.",
       };
     }
     if (/api key|unauthorized|invalid_api_key/i.test(msg)) {
-      return { ok: false, error: "Roadmap generation is not configured. Please contact support." };
+      return { ok: false, error: "Roadmap builder is not configured. Please contact support." };
     }
     if (/model|not found|does not exist/i.test(msg)) {
-      return { ok: false, error: "Roadmap generation model is unavailable. Please try again later." };
+      return { ok: false, error: "Roadmap builder is temporarily unavailable. Please try again later." };
     }
     return { ok: false, error: "Could not create your roadmap. Please try again." };
   }
@@ -827,7 +827,7 @@ export async function regenerateRoadmap(
     if (regCount >= maxRegens) {
       return {
         ok: false,
-        error: `You have already used your ${maxRegens} regeneration${maxRegens === 1 ? "" : "s"} for this roadmap.`,
+        error: `You have already used your ${maxRegens} refresh${maxRegens === 1 ? "" : "es"} for this roadmap.`,
       };
     }
 
@@ -862,7 +862,7 @@ export async function regenerateRoadmap(
 
     const apiKey = getEnv().OPENAI_API_KEY;
     if (!apiKey) {
-      return { ok: false, error: "OpenAI is not configured." };
+      return { ok: false, error: "Roadmap builder is not configured. Please contact support." };
     }
 
     const openai = new OpenAI({ apiKey });
@@ -926,14 +926,14 @@ export async function regenerateRoadmap(
         const isTruncated = lastError.message.includes("truncated") || attempt < maxRetries;
         if (!isTruncated) {
           void logError("roadmap-regeneration", lastError, { userId, roadmapId });
-          return { ok: false, error: "Could not regenerate roadmap. Try again." };
+          return { ok: false, error: "Could not refresh your roadmap. Try again." };
         }
         await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
 
     if (!parsed || !response) {
-      return { ok: false, error: "Failed to generate roadmap after retries." };
+      return { ok: false, error: "Could not build your roadmap after retries. Please try again." };
     }
 
     const parseResult = roadmapJsonSchema.safeParse(parsed);
@@ -998,6 +998,6 @@ export async function regenerateRoadmap(
     if (process.env.NODE_ENV !== "production") {
       return { ok: false, error: `Dev error: ${msg}` };
     }
-    return { ok: false, error: "Could not regenerate your roadmap. Please try again." };
+    return { ok: false, error: "Could not refresh your roadmap. Please try again." };
   }
 }

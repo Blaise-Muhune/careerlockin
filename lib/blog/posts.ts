@@ -22,7 +22,7 @@ const posts: BlogPost[] = [
 
 CareerLockin gives you one roadmap at a time, tied to a target role and how many hours per week you can realistically spend. Each step has a small set of resources and an estimate, so you always know what “done” looks like.
 
-That doesn’t replace daily to‑dos—you can still track tasks inside steps—but it keeps your priorities clear. You’re not choosing from a giant list; you’re moving through a plan that’s sized to you.`,
+That doesn’t replace daily to-dos. You can still track tasks inside steps, but it keeps your priorities clear. You’re not choosing from a giant list; you’re moving through a plan that’s sized to you.`,
   },
   {
     slug: "how-we-estimate-hours",
@@ -44,7 +44,7 @@ If you finish faster or need more time, that’s normal. Use the estimate as a g
     date: "2025-01-15",
     content: `A lot of advice assumes you can treat learning like a full-time job. For many people, that’s not realistic. You might have a day job, family, or other commitments. The good news: you don’t need endless hours to make progress.
 
-What matters more is consistency and direction. Pick a target role you care about, decide how many hours per week you can actually invest, and get a roadmap that’s built for that amount of time. CareerLockin does exactly that—you tell us your goal and your weekly hours, and we give you a phased plan that fits.
+What matters more is consistency and direction. Pick a target role you care about, decide how many hours per week you can actually invest, and get a roadmap that’s built for that amount of time. CareerLockin does exactly that. You tell us your goal and your weekly hours, and we give you a phased plan that fits.
 
 Small, steady steps beat sporadic cramming. A roadmap keeps you on track so those hours add up instead of feeling scattered.`,
   },

@@ -29,6 +29,20 @@ import {
   PRIOR_EXPOSURE_QUICK_ADD,
 } from "@/lib/roadmap-options";
 import { cn } from "@/lib/utils";
+import { appPrimaryButtonClass, appSectionLabelClass } from "@/lib/layout/app";
+import {
+  formAiProofModuleCheckboxLabel,
+  formAiProofModuleClass,
+  formAiProofModuleDescription,
+  formAiProofModuleTitle,
+  formChipClass,
+  formChipSelectedClass,
+  formGoalTileClass,
+  formInputClass,
+  formLearningPrefClass,
+  formSelectClass,
+  formTextareaClass,
+} from "@/lib/layout/form";
 
 const currentLevels = ["beginner", "intermediate", "advanced"] as const;
 const goalIntents = ["job", "internship", "career_switch", "skill_upgrade"] as const;
@@ -117,7 +131,7 @@ export function NewRoadmapForm() {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <Map className="size-5 text-primary" aria-hidden />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              <h2 className={appSectionLabelClass}>
                 Target role
               </h2>
             </div>
@@ -128,12 +142,7 @@ export function NewRoadmapForm() {
                     key={role}
                     type="button"
                     onClick={() => setValue("target_role", role, { shouldValidate: true })}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                      targetRole === role
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                    )}
+                    className={targetRole === role ? formChipSelectedClass : formChipClass}
                   >
                     {role}
                   </button>
@@ -169,7 +178,7 @@ export function NewRoadmapForm() {
                   rows={4}
                   placeholder="e.g. Paste key requirements from a job posting, or describe the type of work you want to do…"
                   maxLength={2000}
-                  className="flex w-full rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 resize-y min-h-[100px]"
+                  className={formTextareaClass}
                   {...register("target_role_job_description")}
                 />
               </div>
@@ -180,7 +189,7 @@ export function NewRoadmapForm() {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <Briefcase className="size-5 text-primary" aria-hidden />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              <h2 className={appSectionLabelClass}>
                 What&apos;s your goal?
               </h2>
             </div>
@@ -188,12 +197,7 @@ export function NewRoadmapForm() {
               {goalIntents.map((value) => (
                 <label
                   key={value}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-4 cursor-pointer transition-all",
-                    goalIntent === value
-                      ? "border-primary bg-primary/5 text-foreground"
-                      : "border-border bg-card hover:border-muted-foreground/30 hover:bg-muted/30 text-muted-foreground"
-                  )}
+                  className={formGoalTileClass(goalIntent === value)}
                 >
                   <input
                     type="radio"
@@ -216,7 +220,7 @@ export function NewRoadmapForm() {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <Clock className="size-5 text-primary" aria-hidden />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              <h2 className={appSectionLabelClass}>
                 Pace & timeline
               </h2>
             </div>
@@ -231,7 +235,7 @@ export function NewRoadmapForm() {
                   min={1}
                   max={60}
                   placeholder="10"
-                  className="h-12 text-base"
+                  className={formInputClass}
                   aria-invalid={Boolean(errors.weekly_hours)}
                   {...register("weekly_hours", { valueAsNumber: true })}
                 />
@@ -248,9 +252,7 @@ export function NewRoadmapForm() {
                 </Label>
                 <select
                   id="target_timeline_weeks"
-                  className={cn(
-                    "flex h-12 w-full rounded-md border border-input bg-background px-4 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
-                  )}
+                  className={formSelectClass}
                   {...register("target_timeline_weeks", { setValueAs: (v) => (v === "" ? "" : v) })}
                 >
                   <option value="">No deadline</option>
@@ -268,7 +270,7 @@ export function NewRoadmapForm() {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <List className="size-5 text-primary" aria-hidden />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              <h2 className={appSectionLabelClass}>
                 Where you&apos;re starting
               </h2>
             </div>
@@ -278,12 +280,10 @@ export function NewRoadmapForm() {
               </Label>
               <select
                 id="current_level"
-                className={cn(
-                  "flex h-12 w-full rounded-md border border-input bg-background px-4 text-base text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 max-w-xs"
-                )}
+                className={cn(formSelectClass, "max-w-xs")}
                 {...register("current_level", { setValueAs: (v) => (v === "" ? undefined : v) })}
               >
-                <option value="">—</option>
+                <option value="">Select level</option>
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
@@ -293,7 +293,7 @@ export function NewRoadmapForm() {
 
           {/* Prior exposure */}
           <section className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+            <h2 className={appSectionLabelClass}>
               Prior exposure (optional)
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -319,12 +319,7 @@ export function NewRoadmapForm() {
                               field.onChange([...current, skill]);
                             }
                           }}
-                          className={cn(
-                            "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                            selected
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                          )}
+                          className={selected ? formChipSelectedClass : formChipClass}
                         >
                           {skill}
                         </button>
@@ -348,7 +343,7 @@ export function NewRoadmapForm() {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <BookOpen className="size-5 text-primary" aria-hidden />
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              <h2 className={appSectionLabelClass}>
                 Learning preference (optional)
               </h2>
             </div>
@@ -356,10 +351,7 @@ export function NewRoadmapForm() {
               {learningPreferences.map(({ value, label }) => (
                 <label
                   key={value}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors",
-                    "border-border bg-card hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  )}
+                  className={formLearningPrefClass}
                 >
                   <input
                     type="radio"
@@ -374,25 +366,19 @@ export function NewRoadmapForm() {
           </section>
         </div>
 
-        {/* AI-proof module (optional) */}
-        <section className="mt-10 rounded-xl border border-border bg-card/50 p-5 shadow-xs">
+        {/* Extra phase (optional) */}
+        <section className={cn(formAiProofModuleClass, "mt-10")}>
           <div className="flex gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <ShieldCheck className="size-5" aria-hidden />
             </div>
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-                  AI-proof module
-                </h2>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  Optional
-                </span>
+                <h2 className="text-sm font-bold text-foreground">{formAiProofModuleTitle}</h2>
+                <span className={appSectionLabelClass}>Optional</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Adds a final roadmap phase focused on staying hireable with AI tools: validating output,
-                clear ownership, portfolio proof of judgment, and interview-ready stories—not generic
-                prompt tricks alone.
+                {formAiProofModuleDescription}
               </p>
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent py-1 hover:border-border/80">
                 <input
@@ -402,7 +388,7 @@ export function NewRoadmapForm() {
                   className="mt-1 size-4 shrink-0 rounded border-input"
                 />
                 <span className="text-sm font-medium text-foreground leading-snug">
-                  Include the AI-proof phase when you create this roadmap
+                  {formAiProofModuleCheckboxLabel}
                 </span>
               </label>
             </div>
@@ -411,17 +397,17 @@ export function NewRoadmapForm() {
 
         {/* Actions */}
         <div className="mt-12 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between pt-8 border-t border-border">
-          <Button variant="ghost" asChild>
+          <Button variant="ghost" asChild className="rounded-full">
             <Link href="/roadmap">Cancel</Link>
           </Button>
           <Button
             type="submit"
             size="lg"
             disabled={isPending}
-            className="min-w-[180px]"
+            className={cn("min-w-[180px] rounded-full", appPrimaryButtonClass)}
           >
             {isPending ? (
-              "Creating…"
+              "Building…"
             ) : (
               <>
                 Create roadmap

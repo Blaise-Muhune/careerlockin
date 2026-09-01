@@ -15,10 +15,12 @@ export default async function AdminLayout({
   logAdminAccess();
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-muted/30">
-      <header className="sticky top-0 z-10 border-b border-border bg-background">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-background marketing-dot-grid">
+      <header className="sticky top-0 z-10 border-b border-border/50 bg-background/90 backdrop-blur-sm">
         <div className="mx-auto flex h-14 min-h-[52px] w-full max-w-4xl items-center justify-between gap-4 px-4 sm:px-6">
-          <span className="font-semibold text-foreground">Admin</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            Admin
+          </span>
           <Link
             href="/dashboard"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"

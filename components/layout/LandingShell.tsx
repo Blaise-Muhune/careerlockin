@@ -6,9 +6,9 @@ type LandingShellProps = {
 
 export function LandingShell({ children }: LandingShellProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col marketing-dot-grid min-w-0 overflow-x-clip">
       <LandingHeader />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 min-w-0 overflow-x-clip">{children}</main>
     </div>
   );
 }

@@ -29,6 +29,12 @@ import {
   NETWORKING_ACTION_TYPES,
   type NetworkingActionType,
 } from "@/lib/networking/actionTypes";
+import {
+  appMonoStatClass,
+  appNestedSurfaceClass,
+  appPrimaryButtonClass,
+  appSectionLabelClass,
+} from "@/lib/layout/app";
 import { cn } from "@/lib/utils";
 
 type SuggestedAction = {
@@ -58,10 +64,6 @@ const ACTION_LABELS: Record<NetworkingActionType, string> = {
   coffee_chat_requested: "Coffee chat",
 };
 
-/**
- * Progressive disclosure: default = status + one action + optional draft.
- * Goal editor + full attempt list stay behind "More".
- */
 export function NetworkingThisWeekCard({
   weekStart: _weekStart,
   today,
@@ -123,31 +125,27 @@ export function NetworkingThisWeekCard({
         : `${completed}/${goal} this week`;
 
   return (
-    <Card className="shadow-sm ring-1 ring-border/60">
-      <CardHeader className="pb-3 space-y-1">
+    <Card className="border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-14px_rgba(0,0,0,0.08)]">
+      <CardHeader className="pb-3 border-b border-border/40 space-y-2">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <CardTitle className="text-base font-semibold">Networking</CardTitle>
-          <p className="text-xs tabular-nums text-muted-foreground">
+          <CardTitle className="text-lg font-bold tracking-tight">Networking</CardTitle>
+          <p className={cn("text-xs font-semibold text-muted-foreground", appMonoStatClass)}>
             {progressLabel}
           </p>
         </div>
-        <CardDescription className="text-muted-foreground">
-          <span className="font-medium text-foreground/90">
-            {weeklyFocusTitle}
-          </span>
-          {" — "}
+        <CardDescription className="text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">{weeklyFocusTitle}</span>
+          {". "}
           {weeklyFocusDescription}
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-3 pt-5">
         {recommendedAction ? (
-          <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-3 space-y-3">
+          <div className={cn(appNestedSurfaceClass, "px-4 py-4 space-y-3")}>
             <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                This week’s move
-              </p>
-              <p className="text-sm text-foreground leading-snug">
+              <p className={appSectionLabelClass}>This week&apos;s move</p>
+              <p className="text-sm font-medium text-foreground leading-snug">
                 {recommendedAction.label}
               </p>
             </div>
@@ -157,9 +155,12 @@ export function NetworkingThisWeekCard({
                 <Button
                   type="button"
                   size="sm"
-                  variant={primaryDone ? "secondary" : "default"}
+                  variant={primaryDone ? "outline" : "default"}
                   disabled={isPending && pendingType === primaryType}
-                  className="min-h-9"
+                  className={cn(
+                    "min-h-9 rounded-full",
+                    !primaryDone && appPrimaryButtonClass
+                  )}
                   onClick={() =>
                     runToggle(primaryType, primaryDone ? "false" : "true")
                   }
@@ -175,7 +176,7 @@ export function NetworkingThisWeekCard({
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="min-h-9 gap-1"
+                    className="min-h-9 gap-1 rounded-full font-semibold"
                     onClick={() => setShowDraft((v) => !v)}
                     aria-expanded={showDraft}
                   >
@@ -191,7 +192,7 @@ export function NetworkingThisWeekCard({
                 ) : null}
               </div>
             ) : (
-              <Button size="sm" variant="secondary" asChild>
+              <Button size="sm" variant="outline" className="rounded-full" asChild>
                 <Link href="/settings">Upgrade to track</Link>
               </Button>
             )}
@@ -211,15 +212,15 @@ export function NetworkingThisWeekCard({
         {canUseTracking ? (
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="more" className="border-border/50">
-              <AccordionTrigger className="py-2 text-sm text-muted-foreground hover:no-underline hover:text-foreground">
+              <AccordionTrigger className="py-2 text-sm font-medium text-muted-foreground hover:no-underline hover:text-foreground">
                 Log other attempts · adjust goal
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-2">
                 <form
                   action={goalFormAction}
-                  className="flex flex-wrap items-end gap-2"
+                  className={cn(appNestedSurfaceClass, "flex flex-wrap items-end gap-3 p-4")}
                 >
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1.5">
                     <Label
                       htmlFor="networking-weekly-goal-card"
                       className="text-xs text-muted-foreground"
@@ -233,16 +234,16 @@ export function NetworkingThisWeekCard({
                       min={0}
                       max={14}
                       defaultValue={goal}
-                      className="w-24 h-9 text-sm"
+                      className="w-24 h-10 rounded-xl text-sm"
                       aria-label="Weekly networking goal"
                     />
                   </div>
                   <Button
                     type="submit"
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     disabled={isGoalPending}
-                    className="min-h-9"
+                    className="min-h-9 rounded-full"
                   >
                     {isGoalPending ? "Saving…" : "Save"}
                   </Button>
@@ -262,7 +263,10 @@ export function NetworkingThisWeekCard({
                     return (
                       <li
                         key={action_type}
-                        className="flex items-center justify-between gap-2 rounded-md px-1 py-1.5"
+                        className={cn(
+                          appNestedSurfaceClass,
+                          "flex items-center justify-between gap-2 px-3 py-2"
+                        )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Checkbox
@@ -286,7 +290,12 @@ export function NetworkingThisWeekCard({
                           >
                             {ACTION_LABELS[action_type]}
                             {count > 1 ? (
-                              <span className="ml-1 text-xs text-muted-foreground tabular-nums">
+                              <span
+                                className={cn(
+                                  "ml-1 text-xs text-muted-foreground",
+                                  appMonoStatClass
+                                )}
+                              >
                                 ×{count}
                               </span>
                             ) : null}
@@ -297,7 +306,7 @@ export function NetworkingThisWeekCard({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 shrink-0 text-xs text-muted-foreground"
+                            className="h-7 shrink-0 rounded-full text-xs text-muted-foreground"
                             disabled={isPending}
                             onClick={() => runToggle(action_type, "true")}
                           >

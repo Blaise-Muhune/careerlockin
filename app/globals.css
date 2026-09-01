@@ -131,8 +131,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: clip;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground min-w-0 overflow-x-clip;
   }
 
   /* Native form controls follow OS theme; align with our dark/light UI. */
@@ -141,6 +144,47 @@
   }
   html.light {
     color-scheme: light;
+  }
+
+  /* Premium marketing canvas (Stalkr-style dot grid) */
+  .marketing-dot-grid {
+    background-color: var(--background);
+    background-image: radial-gradient(
+      circle,
+      color-mix(in oklch, var(--foreground) 8%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  .dark .marketing-dot-grid {
+    background-image: radial-gradient(
+      circle,
+      color-mix(in oklch, var(--foreground) 12%, transparent) 1px,
+      transparent 1px
+    );
+  }
+
+  @keyframes roadmap-loader-ring {
+    0% {
+      transform: scale(0.72);
+      opacity: 0.42;
+    }
+    100% {
+      transform: scale(1.18);
+      opacity: 0;
+    }
+  }
+
+  .roadmap-loader-ring {
+    animation: roadmap-loader-ring 2.4s ease-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .roadmap-loader-ring {
+      animation: none;
+      opacity: 0.18;
+    }
   }
 
   /* Native <select>: closed field + option list (Chromium/Safari/Edge; partial elsewhere). */

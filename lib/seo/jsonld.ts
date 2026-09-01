@@ -85,22 +85,22 @@ export const defaultFaqItems: FaqItem[] = [
   {
     question: "What does CareerLockin do?",
     answer:
-      "CareerLockin creates a personalized tech career roadmap from your target role and hours per week. You get phases, steps, and resources. You can track progress and log time, or use the plan on your own.",
+      "CareerLockin builds a tech career roadmap from your target role and hours per week. You get phases, steps, and resources so you know what to do next. Track progress and log time if you want, or follow the plan on your own.",
   },
   {
     question: "What is included for free?",
     answer:
-      "Free includes: generate one roadmap, full access to Phase 1, and a preview of later phases. No card required.",
+      "Free includes: one roadmap, full access to Phase 1, and a preview of later phases. No card required.",
   },
   {
     question: "What is the one-time unlock vs Pro subscription?",
     answer:
-      "One-time unlock ($29.99) gives full roadmap details, all phases and steps, search-grounded resources, and lifetime access. Pro ($9.99/month) adds time logs, insights, charts, and more regenerations.",
+      "One-time unlock ($29.99) gives full roadmap details, all phases and steps, curated resources, and lifetime access. Pro ($9.99/month) adds time logs, insights, charts, and more roadmap refreshes.",
   },
   {
-    question: "How is the roadmap generated and personalized?",
+    question: "How is my roadmap built?",
     answer:
-      "You share your target role (e.g. front-end developer), weekly hours, and optionally prior exposure and learning style. An AI builds a phased plan with steps and 1–2 resources per step. The plan is saved and editable only by you.",
+      "You share your target role (e.g. front-end developer), weekly hours, and optionally prior exposure and learning style. CareerLockin turns that into a phased plan with steps and 1–2 resources per step. The plan is saved in your account and only you can edit it.",
   },
   {
     question: "Does CareerLockin track or sell my data?",
@@ -108,7 +108,7 @@ export const defaultFaqItems: FaqItem[] = [
       "We do not sell your data. We use your inputs only to generate and store your roadmap and progress. We use minimal analytics; no invasive tracking. See our Privacy Policy for details.",
   },
   {
-    question: "Can I use the roadmap without signing in after generation?",
+    question: "Can I use the roadmap without signing in after it's created?",
     answer:
       "Your roadmap and progress are stored in your account. To view or update them, you sign in. Free users get full Phase 1 and a preview of the rest; one-time unlock or Pro gives full access to all phases.",
   },

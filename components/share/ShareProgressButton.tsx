@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShareProgressModal } from "./ShareProgressModal";
 import { getProgressSnapshotAction } from "@/app/actions/getProgressSnapshot";
 import type { ProgressSnapshotData } from "@/app/actions/getProgressSnapshot";
+import { cn } from "@/lib/utils";
 
 const MILESTONE_PERCENTS = [25, 50, 75, 100];
 
@@ -12,12 +13,11 @@ type ShareProgressButtonProps = {
   variant?: "default" | "secondary" | "outline" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
-  /** When progress hits one of these (25,50,75,100), show a gentle "Want to share?" prompt. */
   milestonePercent?: number;
 };
 
 export function ShareProgressButton({
-  variant = "secondary",
+  variant = "outline",
   size = "sm",
   className,
   milestonePercent,
@@ -54,14 +54,17 @@ export function ShareProgressButton({
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <Button variant={variant} size={size} className={className} onClick={handleClick}>
+      <Button
+        variant={variant}
+        size={size}
+        className={cn("rounded-full font-semibold", className)}
+        onClick={handleClick}
+      >
         Share progress
       </Button>
-      {atMilestone && (
-        <p className="text-xs text-muted-foreground">
-          Want to share your progress?
-        </p>
-      )}
+      {atMilestone ? (
+        <p className="text-xs text-muted-foreground">Want to share your progress?</p>
+      ) : null}
       <ShareProgressModal
         open={open}
         onOpenChange={handleOpenChange}

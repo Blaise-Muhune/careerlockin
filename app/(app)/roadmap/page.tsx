@@ -26,6 +26,9 @@ import { getProfileNetworkingSettings } from "@/lib/server/db/networking";
 import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GenerateRoadmapButton } from "@/app/(app)/dashboard/generate-roadmap-button";
+import { RoadmapRoleHeader } from "@/components/roadmap/RoadmapRoleHeader";
+import { appSurfaceCardClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 function formatWeeks(w: number): string {
   if (w < 0.1 && w > 0) return "< 0.1 weeks";
@@ -84,16 +87,17 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
     return (
       <div className="flex flex-col gap-10">
         <PageHeader
+          eyebrow="Your plan"
           title="Roadmap"
           subtitle="You don't have a roadmap yet."
         />
         <EmptyState
           title="No roadmap yet"
-          description="Generate a free Phase 1 plan from your profile, or return to the dashboard."
+          description="Build a free Phase 1 plan from your profile, or return to the dashboard."
           action={
             <div className="flex flex-col items-center gap-3">
               <GenerateRoadmapButton />
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="ghost" size="sm" className="rounded-full">
                 <Link href="/dashboard">Back to dashboard</Link>
               </Button>
             </div>
@@ -151,13 +155,17 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
     <div className="flex flex-col gap-10">
       {source === "roadmap_limit_reached" && (
         <div
-          className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground"
+          className={cn(
+            appSurfaceCardClass,
+            "px-5 py-4 text-sm text-muted-foreground leading-relaxed"
+          )}
           role="status"
         >
           You already have the maximum number of roadmaps on your Pro plan. Choose one below to continue.
         </div>
       )}
       <PageHeader
+        eyebrow="Your plan"
         title="Roadmap"
         subtitle={subtitle}
         action={
@@ -171,17 +179,22 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
               </Suspense>
             )}
             {canCreateMore && (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="rounded-full">
                 <Link href="/roadmaps/new">Create another roadmap</Link>
               </Button>
             )}
             <ShareProgressButton
               variant="outline"
               size="sm"
+              className="rounded-full"
               milestonePercent={roadmapPercent}
             />
           </div>
         }
+      />
+      <RoadmapRoleHeader
+        targetRole={roadmap.target_role}
+        skills={profileForEdit?.prior_exposure}
       />
       {entitlements.canViewFullRoadmap && (
         <RegenerateRoadmapCard

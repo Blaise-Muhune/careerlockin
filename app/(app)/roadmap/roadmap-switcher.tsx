@@ -10,6 +10,8 @@ import {
   DialogHeader,
 } from "@/components/ui/dialog";
 import { useState } from "react";
+import { appNestedSurfaceClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 type RoadmapItem = {
   id: string;
@@ -55,7 +57,7 @@ export function RoadmapSwitcher({ roadmaps, currentId }: RoadmapSwitcherProps) {
         variant="outline"
         size="sm"
         onClick={() => setOpen(true)}
-        className="gap-1.5"
+        className="gap-1.5 rounded-full"
       >
         <span className="truncate max-w-[140px]">
           {current?.target_role ?? "Roadmap"}
@@ -63,21 +65,22 @@ export function RoadmapSwitcher({ roadmaps, currentId }: RoadmapSwitcherProps) {
         <ChevronDown className="size-4 shrink-0" aria-hidden />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle>Switch roadmap</DialogTitle>
           </DialogHeader>
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-2">
             {roadmaps.map((r) => (
               <li key={r.id}>
                 <button
                   type="button"
                   onClick={() => handleSelect(r.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
                     r.id === currentId
-                      ? "bg-accent text-foreground"
-                      : "text-foreground hover:bg-accent/50"
-                  }`}
+                      ? cn(appNestedSurfaceClass, "text-foreground ring-1 ring-foreground/10")
+                      : "text-foreground hover:bg-muted/40"
+                  )}
                 >
                   <span className="block truncate">{r.target_role}</span>
                   <span className="block text-xs text-muted-foreground mt-0.5">

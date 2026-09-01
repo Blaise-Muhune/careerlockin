@@ -13,10 +13,12 @@ import { Lock } from "lucide-react";
 import { StepRow } from "./step-row";
 import { StepDetailModal } from "./step-detail-modal";
 import { LockBanner } from "./lock-banner";
+import { appMonoStatClass, appSurfaceCardClass } from "@/lib/layout/app";
 import type { MessageDraft } from "@/lib/networking/draftTypes";
 import type { RoadmapWithSteps } from "@/lib/server/db/roadmaps";
 import type { ProgressEntry } from "@/lib/server/db/progress";
 import type { CurrentWorkRow } from "@/lib/server/db/currentWork";
+import { cn } from "@/lib/utils";
 
 function formatWeeks(w: number): string {
   if (w < 0.1 && w > 0) return "< 0.1 weeks";
@@ -139,7 +141,10 @@ export function RoadmapContent({
       {!canViewFullRoadmap && <LockBanner />}
       {canViewFullRoadmap && planLabel && (
         <p className="text-sm text-muted-foreground mb-4" data-plan-badge>
-          You have <span className="font-medium text-foreground">{planLabel}</span> — {isPro ? "track in all phases, time logs, and insights." : "full roadmap and step tracking in every phase. Upgrade to Pro for time logs and charts."}
+          You have <span className="font-medium text-foreground">{planLabel}</span>.{" "}
+          {isPro
+            ? "Track in all phases, time logs, and insights."
+            : "Full roadmap and step tracking in every phase. Upgrade to Pro for time logs and charts."}
         </p>
       )}
       {phases.length === 0 ? (
@@ -156,13 +161,15 @@ export function RoadmapContent({
           </p>
         </div>
       ) : (
+      <div className={`${appSurfaceCardClass} overflow-hidden`}>
       <Accordion
         type="multiple"
         value={openPhases}
         onValueChange={handleAccordionChange}
-        className="w-full"
+        className="w-full px-1"
       >
-        {phases.map(({ phase, phaseOrder, steps }, phaseIndex) => {
+        {(() => {
+          return phases.map(({ phase, phaseOrder, steps }, phaseIndex) => {
           const isLocked = !canViewFullRoadmap && phaseIndex > 0;
           const est = phaseMap[phase] ?? { hours: 0, weeks: 0 };
           const completed = steps.filter(
@@ -170,9 +177,9 @@ export function RoadmapContent({
           ).length;
           const total = steps.length;
           return (
-            <AccordionItem key={phase} value={phase}>
+            <AccordionItem key={phase} value={phase} className="border-border/50 px-3 sm:px-5">
               <AccordionTrigger
-                className="hover:no-underline data-[state=open]:border-b data-[state=open]:pb-4"
+                className="hover:no-underline py-4 sm:py-5 data-[state=open]:border-b data-[state=open]:border-border/50 data-[state=open]:pb-4 touch-manipulation"
                 onClick={
                   isLocked
                     ? (event) => {
@@ -182,45 +189,50 @@ export function RoadmapContent({
                     : undefined
                 }
               >
-                <div className="flex flex-col items-start gap-1.5 text-left w-full pr-2">
-                  <span className="font-semibold">
-                    Phase {phaseOrder}: {phase}
-                    {isLocked && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-muted-foreground font-normal text-xs">
+                <div className="flex flex-col items-start gap-2 text-left w-full pr-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={cn("text-xs font-bold text-primary", appMonoStatClass)}>
+                      {String(phaseOrder).padStart(2, "0")}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {phase}
+                    </span>
+                    {isLocked ? (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground font-normal text-xs">
                         <Lock className="size-3.5 shrink-0" aria-hidden />
                         Unlock to view
                       </span>
-                    )}
-                    {!isLocked && total > 0 && completed === total && (
-                      <span className="ml-2 inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
+                    ) : null}
+                    {!isLocked && total > 0 && completed === total ? (
+                      <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         Phase completed
                       </span>
-                    )}
-                  </span>
-                  <div className="flex flex-col gap-1 w-full max-w-[200px]">
-                    <span className="text-sm font-normal text-muted-foreground">
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col gap-1.5 w-full max-w-xs">
+                    <span className={cn("text-sm font-normal text-muted-foreground", appMonoStatClass)}>
                       {completed}/{total}
-                      {weeklyHours > 0 && est.hours > 0 && ` · ${formatWeeks(est.weeks)}`}
+                      {weeklyHours > 0 && est.hours > 0 ? ` · ${formatWeeks(est.weeks)}` : ""}
                     </span>
-                    {total > 0 && (
+                    {total > 0 ? (
                       <div
-                        className="h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                        className="h-1 w-full rounded-full bg-muted overflow-hidden"
                         role="progressbar"
                         aria-valuenow={completed}
                         aria-valuemin={0}
                         aria-valuemax={total}
                       >
                         <div
-                          className="h-full rounded-full bg-primary/80 transition-[width]"
+                          className="h-full rounded-full bg-primary transition-[width]"
                           style={{ width: `${(completed / total) * 100}%` }}
                         />
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="flex flex-col gap-3 pt-1">
+                <div className="flex flex-col gap-3 pb-5 pt-1">
                   {steps.map((step) => {
                     const prog = progressMap[step.id];
                     return (
@@ -230,9 +242,6 @@ export function RoadmapContent({
                         initialDone={prog?.is_done ?? false}
                         initialDoneAt={prog?.done_at ?? null}
                         isCurrentStep={currentStepId === step.id}
-                        currentStatus={
-                          currentStepId === step.id ? currentStatus : null
-                        }
                         onStepClick={() => setSelectedStepId(step.id)}
                         isLocked={isLocked}
                       />
@@ -242,8 +251,10 @@ export function RoadmapContent({
               </AccordionContent>
             </AccordionItem>
           );
-        })}
+        });
+        })()}
       </Accordion>
+      </div>
       )}
       <StepDetailModal
         step={selectedStep}

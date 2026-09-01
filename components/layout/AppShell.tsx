@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AppNav } from "./AppNav";
+import { AppSidebar } from "./AppSidebar";
 import { OfflineBanner } from "@/components/pwa/OfflineBanner";
+import { appContainerClass } from "@/lib/layout/app";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -9,22 +11,25 @@ type AppShellProps = {
 
 export function AppShell({ children, isAdmin = false }: AppShellProps) {
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-background">
+    <div className="min-h-screen min-h-[100dvh] flex bg-background min-w-0 overflow-x-clip">
       <OfflineBanner />
-      <header className="sticky top-0 z-10 border-b border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex h-14 min-h-[52px] w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center min-h-[44px] min-w-[44px] -ml-2 pl-2 font-semibold text-foreground no-underline hover:text-primary transition-colors rounded-lg touch-manipulation"
-          >
-            CareerLockin
-          </Link>
-          <AppNav isAdmin={isAdmin} />
-        </div>
-      </header>
-      <main className="flex-1 mx-auto w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 py-6 sm:px-6 sm:py-10 overflow-x-hidden min-w-0">
-        {children}
-      </main>
+      <AppSidebar isAdmin={isAdmin} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 border-b border-border/50 bg-background/80 backdrop-blur-md lg:hidden">
+          <div className="flex h-14 items-center justify-between gap-3 px-4">
+            <Link
+              href="/dashboard"
+              className="font-bold text-foreground no-underline hover:opacity-80 transition-opacity"
+            >
+              CareerLockin
+            </Link>
+            <AppNav isAdmin={isAdmin} mobileOnly />
+          </div>
+        </header>
+        <main className="marketing-dot-grid flex-1 overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
+          <div className={appContainerClass}>{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

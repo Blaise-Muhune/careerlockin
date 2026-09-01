@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import {
+  appEyebrowClass,
+  appMonoStatClass,
+  appSurfaceCardClass,
+} from "@/lib/layout/app";
 
 type WeekStoryProps = {
   hoursThisWeek: number;
@@ -12,10 +17,6 @@ type WeekStoryProps = {
   className?: string;
 };
 
-/**
- * One composed “this week” beat: story line + goal arc + three supporting facts.
- * Attractive without stacking cards or instructional clutter.
- */
 export function WeekStory({
   hoursThisWeek,
   weeklyHours,
@@ -69,43 +70,40 @@ export function WeekStory({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border/50",
-        "bg-gradient-to-br from-primary/[0.07] via-background to-background",
-        "px-5 py-5 sm:px-6 sm:py-6",
+        appSurfaceCardClass,
+        "relative overflow-hidden px-5 py-6 sm:px-8 sm:py-7",
         className
       )}
       aria-label="This week’s story"
     >
       <div
-        className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl"
+        className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-primary/5 blur-3xl"
+        className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-muted/40 blur-3xl"
         aria-hidden
       />
 
-      <div className="relative flex flex-col gap-5">
-        <div className="space-y-2 max-w-2xl">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-primary/80">
-            This week
-          </p>
-          <p className="text-lg sm:text-xl font-medium tracking-tight text-foreground text-balance leading-snug">
+      <div className="relative flex flex-col gap-6">
+        <div className="space-y-3 max-w-3xl">
+          <p className={appEyebrowClass}>This week</p>
+          <p className="text-2xl sm:text-[1.75rem] font-bold tracking-tight text-foreground text-balance leading-[1.15]">
             {lead}
           </p>
         </div>
 
         {planned > 0 ? (
-          <div className="space-y-2 max-w-md">
+          <div className="space-y-2.5 max-w-xl">
             <div className="flex items-baseline justify-between gap-3 text-xs text-muted-foreground">
               <span>Toward your {planned}h goal</span>
-              <span className="tabular-nums text-foreground/80">
+              <span className={cn("text-foreground/80", appMonoStatClass)}>
                 {hoursThisWeek.toFixed(1)}h
                 {progressPct >= 100 ? " · done" : ` · ${remaining.toFixed(1)}h left`}
               </span>
             </div>
             <div
-              className="h-1.5 w-full overflow-hidden rounded-full bg-muted/80"
+              className="h-2 w-full overflow-hidden rounded-full bg-muted/70 ring-1 ring-border/40"
               role="progressbar"
               aria-valuenow={Math.round(progressPct)}
               aria-valuemin={0}
@@ -113,27 +111,32 @@ export function WeekStory({
               aria-label="Weekly hours progress"
             >
               <div
-                className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
+                className="h-full rounded-full bg-foreground transition-[width] duration-700 ease-out"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
           </div>
         ) : null}
 
-        <dl className="grid grid-cols-3 gap-3 sm:gap-6 max-w-lg">
+        <dl className="grid grid-cols-3 divide-x divide-border/60 rounded-xl border border-border/60 bg-muted/15 max-w-xl overflow-hidden">
           {beats.map((b) => (
-            <div key={b.label} className="min-w-0">
+            <div key={b.label} className="min-w-0 px-4 py-3 sm:px-5 sm:py-4">
               <dt className="sr-only">{b.label}</dt>
-              <dd className="flex flex-col gap-0.5">
-                <span className="text-2xl sm:text-[1.75rem] font-semibold tracking-tight tabular-nums text-foreground">
+              <dd className="flex flex-col gap-1">
+                <span
+                  className={cn(
+                    "text-2xl sm:text-3xl font-bold tracking-tight text-foreground",
+                    appMonoStatClass
+                  )}
+                >
                   {b.value}
                   {b.unit ? (
-                    <span className="text-base font-medium text-muted-foreground">
+                    <span className="text-lg font-semibold text-muted-foreground">
                       {b.unit}
                     </span>
                   ) : null}
                 </span>
-                <span className="text-xs text-muted-foreground truncate">
+                <span className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground truncate">
                   {b.label}
                 </span>
               </dd>
@@ -146,7 +149,7 @@ export function WeekStory({
             Phase 1 is open on Free.{" "}
             <Link
               href="/settings"
-              className="font-medium text-primary underline-offset-2 hover:underline"
+              className="font-semibold text-foreground underline-offset-4 hover:underline"
             >
               Unlock the full roadmap
             </Link>

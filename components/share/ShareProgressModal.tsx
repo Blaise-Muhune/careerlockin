@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ProgressSnapshotCard } from "./ProgressSnapshotCard";
 import type { ProgressSnapshotData } from "@/app/actions/getProgressSnapshot";
+import { appPrimaryButtonClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 const CAPTION = "Working toward my tech career with a clear plan.";
 const APP_NAME = "CareerLockin";
@@ -105,7 +107,7 @@ export function ShareProgressModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]" showCloseButton>
+      <DialogContent className="sm:max-w-[520px] rounded-2xl" showCloseButton>
         <DialogHeader>
           <DialogTitle>Share progress</DialogTitle>
           <DialogDescription>
@@ -113,12 +115,12 @@ export function ShareProgressModal({
           </DialogDescription>
         </DialogHeader>
         {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
-        {error && (
+        {error ? (
           <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
-        )}
-        {snapshot && !loading && (
+        ) : null}
+        {snapshot && !loading ? (
           <>
             <div className="flex justify-center">
               <ProgressSnapshotCard
@@ -152,13 +154,15 @@ export function ShareProgressModal({
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={downloadImage}>Download image</Button>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button onClick={downloadImage} className={cn("rounded-full", appPrimaryButtonClass)}>
+                Download image
+              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full">
                 Close
               </Button>
             </DialogFooter>
           </>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );

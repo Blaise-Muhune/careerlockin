@@ -33,7 +33,7 @@ export async function assertLlmGenerationAllowed(
   if (isRoadmapGenerationDisabled()) {
     return {
       ok: false,
-      error: "Roadmap generation is temporarily disabled. Please try again later.",
+      error: "Roadmap building is temporarily unavailable. Please try again later.",
     };
   }
 
@@ -51,7 +51,7 @@ export async function assertLlmGenerationAllowed(
     // Fail open on infra errors would burn money; fail closed with a soft message.
     return {
       ok: false,
-      error: "Unable to verify generation limits. Please try again shortly.",
+      error: "Unable to verify roadmap limits. Please try again shortly.",
     };
   }
 
@@ -69,7 +69,7 @@ export async function assertLlmGenerationAllowed(
   if (insertError) {
     return {
       ok: false,
-      error: "Unable to start generation. Please try again shortly.",
+      error: "Unable to start your roadmap. Please try again shortly.",
     };
   }
 

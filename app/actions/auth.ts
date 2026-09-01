@@ -81,7 +81,7 @@ export async function signUp(
     };
   }
 
-  redirect("/onboarding");
+  redirect("/get-started");
 }
 
 export async function signIn(
@@ -108,6 +108,34 @@ export async function signIn(
       error: error.message,
       fields: { email },
     };
+  }
+
+  const next = formData.get("next");
+  const nextPath =
+    typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
+      ? next
+      : null;
+
+  if (nextPath) {
+    redirect(nextPath);
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    redirect("/get-started");
   }
 
   redirect("/dashboard");
@@ -149,12 +177,18 @@ export type SignInWithGoogleState =
   | { url: string }
   | { error: string };
 
-export async function signInWithGoogle(): Promise<SignInWithGoogleState> {
+export async function signInWithGoogle(
+  options?: { onboarding?: boolean }
+): Promise<SignInWithGoogleState> {
   const supabase = await createClient();
+  const redirectTo =
+    options?.onboarding === true
+      ? `${siteUrl}/auth/callback?flow=onboarding`
+      : `${siteUrl}/auth/callback`;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteUrl}/auth/callback`,
+      redirectTo,
       queryParams: {
         access_type: "offline",
         prompt: "consent",

@@ -59,7 +59,7 @@ export async function requireUserAndProfile(): Promise<{
     redirect("/login");
   }
   if (!state.profile) {
-    redirect("/onboarding");
+    redirect("/get-started");
   }
   return {
     userId: state.user.id,

@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { appEyebrowClass, appMonoStatClass, appSurfaceCardClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 import { EmailTestSection } from "./EmailTestSection";
 
 function MetricCard({
@@ -23,14 +25,14 @@ function MetricCard({
   sub?: string;
 }) {
   return (
-    <Card className="border-muted">
-      <CardHeader className="pb-1">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className={cn(appSurfaceCardClass, "border-border/60 py-0 gap-0")}>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold text-muted-foreground">
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-semibold tabular-nums">{value}</div>
+        <div className={cn("text-2xl font-bold tabular-nums", appMonoStatClass)}>{value}</div>
         {sub != null && sub !== "" && (
           <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
         )}
@@ -47,8 +49,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+    <section className="space-y-4">
+      <h2 className={appEyebrowClass}>{title}</h2>
       {children}
     </section>
   );
@@ -142,7 +144,7 @@ export async function AdminDashboard() {
             value={
               roadmapStats
                 ? roadmapStats.avgRoadmapsPerUser.toFixed(1)
-                : "—"
+                : "N/A"
             }
           />
           <MetricCard
@@ -150,7 +152,7 @@ export async function AdminDashboard() {
             value={
               roadmapStats
                 ? `${roadmapStats.pctUnlockedFull.toFixed(1)}%`
-                : "—"
+                : "N/A"
             }
           />
           <MetricCard
@@ -166,11 +168,11 @@ export async function AdminDashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <MetricCard
             title="Avg hours per active user (last 7d)"
-            value={engagementStats?.avgHoursPerActiveUserLast7 ?? "—"}
+            value={engagementStats?.avgHoursPerActiveUserLast7 ?? "N/A"}
           />
           <MetricCard
             title="Avg steps completed per user"
-            value={engagementStats?.avgStepsCompletedPerUser ?? "—"}
+            value={engagementStats?.avgStepsCompletedPerUser ?? "N/A"}
           />
         </div>
         {engagementStats?.phaseCompletion &&
@@ -211,7 +213,7 @@ export async function AdminDashboard() {
             value={
               revenueStats?.mrrCents != null
                 ? `$${(revenueStats.mrrCents / 100).toFixed(2)}`
-                : "—"
+                : "N/A"
             }
             sub={
               revenueStats?.mrrCents == null

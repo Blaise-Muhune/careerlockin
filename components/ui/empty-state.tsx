@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { appSurfaceCardClass } from "@/lib/layout/app";
 
 type EmptyStateProps = {
   title?: string;
@@ -12,12 +13,17 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
-      <p className="text-sm font-medium text-foreground">{title}</p>
-      {description != null && description !== "" && (
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
-      )}
-      {action != null && <div className="mt-1">{action}</div>}
+    <div
+      className={`${appSurfaceCardClass} flex flex-col items-center justify-center gap-3 px-6 py-14 text-center`}
+    >
+      <div className="flex size-12 items-center justify-center rounded-2xl border border-border/60 bg-muted/40">
+        <div className="size-5 rounded-full border-2 border-muted-foreground/25" aria-hidden />
+      </div>
+      <p className="text-base font-semibold text-foreground">{title}</p>
+      {description != null && description !== "" ? (
+        <p className="max-w-sm text-sm text-muted-foreground leading-relaxed">{description}</p>
+      ) : null}
+      {action != null ? <div className="mt-2">{action}</div> : null}
     </div>
   );
 }

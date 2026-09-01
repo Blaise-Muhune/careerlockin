@@ -6,6 +6,17 @@ import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RoadmapGeneratingOverlay } from "@/components/loading/RoadmapGeneratingOverlay";
 import { generateRoadmap, type GenerateRoadmapState } from "@/app/actions/generateRoadmap";
+import {
+  appNestedSurfaceClass,
+  appPrimaryButtonClass,
+  appSectionLabelClass,
+} from "@/lib/layout/app";
+import {
+  formAiProofModuleCheckboxLabel,
+  formAiProofModuleDescription,
+  formAiProofModuleTitle,
+} from "@/lib/layout/form";
+import { cn } from "@/lib/utils";
 
 async function submitGenerateFromProfile(
   _prev: GenerateRoadmapState | null,
@@ -30,17 +41,16 @@ export function GenerateRoadmapButton() {
     <>
       {isPending && <RoadmapGeneratingOverlay />}
       <form action={formAction} className="flex flex-col gap-4">
-        <div className="rounded-lg border border-border bg-card/40 p-4">
+        <div className={cn(appNestedSurfaceClass, "p-4")}>
           <div className="flex gap-3">
             <ShieldCheck className="size-5 shrink-0 text-primary mt-0.5" aria-hidden />
             <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">Hireability module</span>
-                <span className="text-xs font-medium text-muted-foreground">Optional</span>
+                <span className="text-sm font-bold text-foreground">{formAiProofModuleTitle}</span>
+                <span className={appSectionLabelClass}>Optional</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Adds a final roadmap phase on verification, ownership, and portfolio proof for an
-                AI-assisted workplace.
+                {formAiProofModuleDescription}
               </p>
               <label className="flex cursor-pointer items-start gap-2 text-sm">
                 <input
@@ -49,19 +59,23 @@ export function GenerateRoadmapButton() {
                   value="on"
                   className="mt-0.5 size-4 shrink-0 rounded border-input"
                 />
-                <span>Include when generating from my profile</span>
+                <span>{formAiProofModuleCheckboxLabel}</span>
               </label>
             </div>
           </div>
         </div>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Creating…" : "Create roadmap"}
+        <Button
+          type="submit"
+          disabled={isPending}
+          className={cn("w-full sm:w-auto rounded-full", appPrimaryButtonClass)}
+        >
+          {isPending ? "Building…" : "Create roadmap"}
         </Button>
-        {clientError && (
+        {clientError ? (
           <p className="text-sm text-destructive" role="alert">
             {clientError}
           </p>
-        )}
+        ) : null}
       </form>
     </>
   );

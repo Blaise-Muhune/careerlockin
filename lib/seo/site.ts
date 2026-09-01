@@ -5,7 +5,7 @@
 
 const siteName = "CareerLockin";
 const siteDescription =
-  "Tech career roadmap and progress tracking. Get a personalized plan from your target role and weekly hours. Track progress only if you want.";
+  "Tech career roadmaps and progress tracking. Know what to do next from your target role and weekly hours. Track progress only if you want.";
 const defaultOgImagePath = "/og.png";
 
 /** Contact/support email for users to reach out. */

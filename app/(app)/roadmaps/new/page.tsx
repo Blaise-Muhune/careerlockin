@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { requireUserAndProfile } from "@/lib/server/auth";
 import { getEntitlements } from "@/lib/server/billing/entitlements";
 import { listRoadmapsForUser } from "@/lib/server/db/roadmaps";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { NewRoadmapForm } from "./new-roadmap-form";
+import { appMonoStatClass, appSurfaceCardClass } from "@/lib/layout/app";
+import { cn } from "@/lib/utils";
 
 const PRO_ROADMAP_LIMIT = 5;
 
@@ -22,24 +25,25 @@ export default async function NewRoadmapPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 sm:gap-12">
-      <div className="text-center space-y-3 max-w-xl mx-auto">
-        <p className="text-xs font-medium uppercase tracking-widest text-primary">
-          Create another roadmap
-        </p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          What do you want to build next?
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          Tell us about this goal and we&apos;ll create a personalized roadmap with phases, steps, and real resources.
-        </p>
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+    <div className="flex flex-col gap-8 sm:gap-10 max-w-2xl mx-auto w-full">
+      <PageHeader
+        eyebrow="Pro"
+        title="What do you want to build next?"
+        subtitle="Tell us about this goal and we'll map phases, steps, and curated resources."
+        action={
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border border-border/60 bg-muted/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground",
+              appMonoStatClass
+            )}
+          >
             {roadmaps.length} of {PRO_ROADMAP_LIMIT} roadmaps
           </span>
-        </div>
+        }
+      />
+      <div className={cn(appSurfaceCardClass, "p-6 sm:p-8")}>
+        <NewRoadmapForm />
       </div>
-      <NewRoadmapForm />
     </div>
   );
 }
