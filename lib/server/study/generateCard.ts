@@ -4,10 +4,11 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { getEnv } from "@/lib/server/env";
 import type { StudyMode } from "@/lib/study/chooseMode";
+import { fallbackLessonSteps, lessonStepsFromModel } from "@/lib/study/lessonSteps";
 
 const cardSchema = z
   .object({
-    example: z.string().min(1).max(700),
+    steps: z.array(z.string().min(1).max(240)).min(3).max(5),
     try_this: z.string().min(1).max(400),
     question: z.string().min(1).max(300),
     focus: z.string().min(1).max(400),
@@ -20,22 +21,36 @@ const correctionSchema = z
   })
   .strict();
 
-export type GeneratedStudyCard = z.infer<typeof cardSchema>;
+export type GeneratedStudyCard = {
+  steps: string[];
+  example: string;
+  try_this: string;
+  question: string;
+  focus: string;
+};
+
+function asCard(input: {
+  steps: string[];
+  try_this: string;
+  question: string;
+  focus: string;
+}): GeneratedStudyCard {
+  return { ...input, example: input.steps.join(" ") };
+}
 
 export function fallbackStudyCard(input: {
   title: string;
   description: string;
   resourceTitle: string | null;
 }): GeneratedStudyCard {
-  const example = input.description.trim().slice(0, 500) || input.title;
-  return {
-    example,
+  return asCard({
+    steps: fallbackLessonSteps(input.title, input.description),
     try_this: `Spend 25 minutes on one small piece of “${input.title}”.`,
     question: `Without looking, what is the main idea of “${input.title}”?`,
     focus: input.resourceTitle
       ? `Start with ${input.resourceTitle}. Use the part that matches this step and skip the rest.`
       : "Use the step description. Skip anything that is not needed for the small task.",
-  };
+  });
 }
 
 export async function generateStudyCard(input: {
@@ -56,7 +71,7 @@ export async function generateStudyCard(input: {
       model: "gpt-4.1",
       instructions: [
         "Write a short study card for one career-roadmap step.",
-        "example: one worked example in plain language, at most 4 sentences.",
+        "steps: 3 to 5 ordered sentences of one worked example. Each sentence is one move, under 200 characters, and follows the previous sentence. Do not number them.",
         "try_this: one task that takes about 25 minutes.",
         "question: one question they must answer from memory, with no multiple choice.",
         "focus: which part of the source to use, and what to skip.",
@@ -73,9 +88,13 @@ export async function generateStudyCard(input: {
         .join("\n"),
       text: { format: zodTextFormat(cardSchema, "study_card") },
       temperature: 0.3,
-      max_output_tokens: 700,
+      max_output_tokens: 900,
     });
-    return response.output_parsed ?? fallback;
+    const parsed = response.output_parsed;
+    if (!parsed) return fallback;
+    const steps = lessonStepsFromModel(parsed.steps);
+    if (steps.length < 3) return fallback;
+    return asCard({ ...parsed, steps });
   } catch {
     return fallback;
   }

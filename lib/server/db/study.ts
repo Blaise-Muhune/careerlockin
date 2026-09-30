@@ -21,6 +21,8 @@ export type StudyCardRow = StoredSchedule & {
   step_id: string;
   mode: Exclude<StudyMode, "rest">;
   example: string;
+  steps: string[];
+  step_index: number;
   try_this: string;
   question: string;
   focus: string | null;
@@ -33,6 +35,11 @@ export type StudyCardRow = StoredSchedule & {
   created_at: string;
 };
 
+function readSteps(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 5);
+}
+
 function isMode(value: string): value is Exclude<StudyMode, "rest"> {
   return value === "example" || value === "build" || value === "recall";
 }
@@ -44,6 +51,8 @@ export function toStudyCardView(row: StudyCardRow, displayMode: StudyMode): Stud
     mode: row.mode,
     displayMode,
     example: row.example,
+    steps: row.steps,
+    stepIndex: row.step_index,
     tryThis: row.try_this,
     question: row.question,
     focus: row.focus,
@@ -117,6 +126,8 @@ function mapCard(row: Record<string, unknown>): StudyCardRow | null {
     step_id: row.step_id,
     mode: row.mode,
     example: row.example,
+    steps: readSteps(row.steps),
+    step_index: Number(row.step_index ?? 0),
     try_this: row.try_this,
     question: row.question,
     focus: typeof row.focus === "string" ? row.focus : null,
@@ -174,6 +185,7 @@ export async function insertStudyCard(input: {
   tryThis: string;
   question: string;
   focus: string;
+  steps: string[];
   resourceUrl: string | null;
   resourceTitle: string | null;
   schedule: StoredSchedule;
@@ -189,6 +201,8 @@ export async function insertStudyCard(input: {
       try_this: input.tryThis,
       question: input.question,
       focus: input.focus,
+      steps: input.steps,
+      step_index: input.steps.length >= 3 ? 1 : 0,
       resource_url: input.resourceUrl,
       resource_title: input.resourceTitle,
       ...input.schedule,
@@ -227,6 +241,32 @@ export async function saveStudyReview(input: {
     .eq("id", input.cardId)
     .eq("user_id", input.userId);
   return !error;
+}
+
+export async function advanceStudyStep(input: {
+  userId: string;
+  cardId: string;
+}): Promise<StudyCardRow | null> {
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("study_cards")
+    .select("*")
+    .eq("id", input.cardId)
+    .eq("user_id", input.userId)
+    .maybeSingle();
+  const card = current ? mapCard(current as Record<string, unknown>) : null;
+  if (!card || card.steps.length < 3) return card;
+  const nextIndex = Math.min(card.step_index < 1 ? 2 : card.step_index + 1, card.steps.length);
+  if (nextIndex === card.step_index) return card;
+  const { data, error } = await supabase
+    .from("study_cards")
+    .update({ step_index: nextIndex })
+    .eq("id", input.cardId)
+    .eq("user_id", input.userId)
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return mapCard(data as Record<string, unknown>);
 }
 
 export async function saveCheckSummary(input: {

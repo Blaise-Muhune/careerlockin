@@ -11,6 +11,7 @@ import {
   insertStudyCard,
   saveCheckSummary,
   saveStudyReview,
+  advanceStudyStep,
   toStudyCardView,
 } from "@/lib/server/db/study";
 import { getProfileForRoadmapEdit } from "@/lib/server/db/profiles";
@@ -147,6 +148,7 @@ export async function prepareStudyCard(stepId: string): Promise<StudyCardResult>
     tryThis: generated.try_this,
     question: generated.question,
     focus: generated.focus,
+    steps: generated.steps,
     resourceUrl: access.step.resourceUrl,
     resourceTitle: access.step.resourceTitle,
     schedule: emptySchedule(),
@@ -154,12 +156,41 @@ export async function prepareStudyCard(stepId: string): Promise<StudyCardResult>
   if (!row) {
     return {
       ok: false,
-      error: "Could not save today's card. Apply migration 00023_study_loop if the study tables are missing.",
+      error: "Could not save today's card. Apply migrations 00023_study_loop and 00024_study_steps if the study tables are missing.",
     };
   }
   revalidatePath("/dashboard");
   revalidatePath("/roadmap");
   return { ok: true, kind: "card", card: toStudyCardView(row, mode) };
+}
+
+const revealSchema = z.object({
+  stepId: z.string().uuid(),
+  cardId: z.string().uuid(),
+  guess: z.string().trim().min(1).max(500),
+});
+
+export async function revealNextStudyStep(input: {
+  stepId: string;
+  cardId: string;
+  guess: string;
+}): Promise<StudyCardResult> {
+  const parsed = revealSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Write what you think comes next." };
+  const access = await requireProStudy(parsed.data.stepId);
+  if (!access.ok) return access;
+  const [card, profile, logged] = await Promise.all([
+    advanceStudyStep({ userId: access.userId, cardId: parsed.data.cardId }),
+    getProfileForRoadmapEdit(access.userId),
+    loggedHoursThisWeek(access.userId),
+  ]);
+  if (!card || card.step_id !== access.step.id) {
+    return { ok: false, error: "Could not show the next step." };
+  }
+  const mode = displayFor(card, profile?.learning_preference ?? null, logged, profile?.weekly_hours ?? 0);
+  revalidatePath("/dashboard");
+  revalidatePath("/roadmap");
+  return { ok: true, kind: "card", card: toStudyCardView(card, mode === "rest" ? "recall" : mode) };
 }
 
 const reviewSchema = z.object({

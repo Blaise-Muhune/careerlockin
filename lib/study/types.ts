@@ -6,6 +6,8 @@ export type StudyCardView = {
   mode: Exclude<StudyMode, "rest">;
   displayMode: StudyMode;
   example: string;
+  steps: string[];
+  stepIndex: number;
   tryThis: string;
   question: string;
   focus: string | null;

@@ -6,11 +6,13 @@ import {
   checkStudyRepo,
   loadStudyCard,
   prepareStudyCard,
+  revealNextStudyStep,
   submitStudyReview,
 } from "@/app/actions/studySession";
 import { Button } from "@/components/ui/button";
 import { appNestedSurfaceClass, appPrimaryButtonClass } from "@/lib/layout/app";
 import type { StudyCardResult, StudyCardView } from "@/lib/study/types";
+import { lessonWalkOpen, visibleStepCount } from "@/lib/study/lessonSteps";
 import { cn } from "@/lib/utils";
 
 const fieldClass =
@@ -26,10 +28,11 @@ function formatDue(iso: string): string {
 export function StudyCardPanel({ stepId }: { stepId: string }) {
   const [result, setResult] = useState<StudyCardResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<"load" | "prepare" | "review" | "code" | "repo" | null>(
+  const [pending, setPending] = useState<"load" | "prepare" | "review" | "code" | "repo" | "reveal" | null>(
     "load"
   );
   const [answer, setAnswer] = useState("");
+  const [guess, setGuess] = useState("");
   const [source, setSource] = useState("");
   const [language, setLanguage] = useState<"javascript" | "python">("javascript");
   const [repoUrl, setRepoUrl] = useState("");
@@ -50,12 +53,13 @@ export function StudyCardPanel({ stepId }: { stepId: string }) {
     };
   }, [stepId]);
 
-  async function run(kind: "prepare" | "review" | "code" | "repo", task: Promise<StudyCardResult>) {
+  async function run(kind: "prepare" | "review" | "code" | "repo" | "reveal", task: Promise<StudyCardResult>) {
     setPending(kind);
     setError(null);
     const next = await task;
     setResult(next);
     setError(next.ok ? null : next.error);
+    if (kind === "reveal" && next.ok) setGuess("");
     setPending(null);
   }
 
@@ -78,7 +82,7 @@ export function StudyCardPanel({ stepId }: { stepId: string }) {
       {result?.ok && result.kind === "empty" ? (
         <div className="mt-3">
           <p className="text-sm text-muted-foreground">
-            One example, one small try, and one question from memory.
+            One short lesson, one step at a time, then a 25-minute try.
           </p>
           <Button
             type="button"
@@ -90,7 +94,30 @@ export function StudyCardPanel({ stepId }: { stepId: string }) {
           </Button>
         </div>
       ) : null}
-      {card ? <CardBody card={card} answer={answer} setAnswer={setAnswer} source={source} setSource={setSource} language={language} setLanguage={setLanguage} repoUrl={repoUrl} setRepoUrl={setRepoUrl} pending={pending} onReview={(rating) => run("review", submitStudyReview({ stepId, cardId: card.id, answer, rating }))} onCode={() => run("code", checkStudyCode({ stepId, cardId: card.id, language, source }))} onRepo={() => run("repo", checkStudyRepo({ stepId, cardId: card.id, repoUrl }))} /> : null}
+      {card ? (
+        <CardBody
+          card={card}
+          answer={answer}
+          setAnswer={setAnswer}
+          guess={guess}
+          setGuess={setGuess}
+          source={source}
+          setSource={setSource}
+          language={language}
+          setLanguage={setLanguage}
+          repoUrl={repoUrl}
+          setRepoUrl={setRepoUrl}
+          pending={pending}
+          onReview={(rating) =>
+            run("review", submitStudyReview({ stepId, cardId: card.id, answer, rating }))
+          }
+          onReveal={() =>
+            run("reveal", revealNextStudyStep({ stepId, cardId: card.id, guess }))
+          }
+          onCode={() => run("code", checkStudyCode({ stepId, cardId: card.id, language, source }))}
+          onRepo={() => run("repo", checkStudyRepo({ stepId, cardId: card.id, repoUrl }))}
+        />
+      ) : null}
     </section>
   );
 }
@@ -99,6 +126,8 @@ function CardBody({
   card,
   answer,
   setAnswer,
+  guess,
+  setGuess,
   source,
   setSource,
   language,
@@ -107,12 +136,15 @@ function CardBody({
   setRepoUrl,
   pending,
   onReview,
+  onReveal,
   onCode,
   onRepo,
 }: {
   card: StudyCardView;
   answer: string;
   setAnswer: (value: string) => void;
+  guess: string;
+  setGuess: (value: string) => void;
   source: string;
   setSource: (value: string) => void;
   language: "javascript" | "python";
@@ -121,6 +153,7 @@ function CardBody({
   setRepoUrl: (value: string) => void;
   pending: string | null;
   onReview: (rating: 1 | 2 | 3 | 4) => void;
+  onReveal: () => void;
   onCode: () => void;
   onRepo: () => void;
 }) {
@@ -130,6 +163,9 @@ function CardBody({
       : card.displayMode === "build"
         ? "Build"
         : "Example";
+  const recall = card.displayMode === "recall";
+  const walking = lessonWalkOpen(card.stepIndex, card.steps.length, recall);
+  const shown = card.steps.slice(0, visibleStepCount(card.stepIndex, card.steps.length));
 
   return (
     <div className="mt-3 space-y-4">
@@ -150,10 +186,45 @@ function CardBody({
           {card.resourceTitle ?? "Open the source"}
         </a>
       ) : null}
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Example</p>
-        <p className="mt-1 text-sm leading-relaxed text-foreground">{card.example}</p>
-      </div>
+      {recall ? null : shown.length > 0 ? (
+        <ol className="space-y-2">
+          {shown.map((step, index) => (
+            <li key={`${index}-${step.slice(0, 24)}`} className="text-sm leading-relaxed text-foreground">
+              <span className="mr-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Step {index + 1}
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Example</p>
+          <p className="mt-1 text-sm leading-relaxed text-foreground">{card.example}</p>
+        </div>
+      )}
+      {walking ? (
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">What comes next?</p>
+          <textarea
+            value={guess}
+            onChange={(event) => setGuess(event.target.value)}
+            rows={2}
+            className={cn(fieldClass, "mt-2 resize-y")}
+            placeholder="Say the next step before it is shown."
+          />
+          <Button
+            type="button"
+            size="sm"
+            className={cn("mt-2 rounded-full", appPrimaryButtonClass)}
+            disabled={pending != null || guess.trim().length === 0}
+            onClick={onReveal}
+          >
+            {pending === "reveal" ? "Showing…" : "Show the next step"}
+          </Button>
+        </div>
+      ) : (
+        <>
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Try this</p>
         <p className="mt-1 text-sm leading-relaxed text-foreground">{card.tryThis}</p>
@@ -234,6 +305,8 @@ function CardBody({
           ) : null}
         </div>
       </details>
+        </>
+      )}
     </div>
   );
 }
