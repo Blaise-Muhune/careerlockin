@@ -15,6 +15,7 @@ export type RoadmapWithSteps = {
     description: string;
     est_hours: number | null;
     step_order: number;
+    is_market_optional?: boolean;
     phase_project: unknown | null;
     practices: unknown | null;
     resources: Array<{
@@ -71,7 +72,7 @@ export async function getRoadmapById(
 
   const { data: steps, error: stepsError } = await supabase
     .from("roadmap_steps")
-    .select("id, phase, title, description, est_hours, step_order, phase_project, practices, created_at")
+    .select("id, phase, title, description, est_hours, step_order, is_market_optional, phase_project, practices, created_at")
     .eq("roadmap_id", roadmap.id)
     .order("created_at", { ascending: true })
     .order("step_order", { ascending: true });
@@ -88,6 +89,7 @@ export async function getRoadmapById(
   const stepsWithResources = steps.map((step) => ({
     ...step,
     est_hours: step.est_hours != null ? Number(step.est_hours) : null,
+    is_market_optional: Boolean(step.is_market_optional),
     resources: (resources ?? [])
       .filter((r) => r.step_id === step.id)
       .map((r) => ({
@@ -124,7 +126,7 @@ export async function getLatestRoadmapForUser(
 
   const { data: steps, error: stepsError } = await supabase
     .from("roadmap_steps")
-    .select("id, phase, title, description, est_hours, step_order, phase_project, practices, created_at")
+    .select("id, phase, title, description, est_hours, step_order, is_market_optional, phase_project, practices, created_at")
     .eq("roadmap_id", roadmap.id)
     .order("created_at", { ascending: true })
     .order("step_order", { ascending: true });
@@ -147,6 +149,7 @@ export async function getLatestRoadmapForUser(
   const stepsWithResources = steps.map((step) => ({
     ...step,
     est_hours: step.est_hours != null ? Number(step.est_hours) : null,
+    is_market_optional: Boolean(step.is_market_optional),
     resources: (resources ?? [])
       .filter((r) => r.step_id === step.id)
       .map((r) => ({

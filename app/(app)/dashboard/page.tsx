@@ -36,6 +36,7 @@ import { InProgressCard } from "./in-progress-card";
 import { NetworkingThisWeekCard } from "./networking-this-week-card";
 import { DashboardInsights } from "./dashboard-insights";
 import { ShareProgressButton } from "@/components/share/ShareProgressButton";
+import { StudyCardPanel } from "@/components/study/StudyCardPanel";
 import { RoadmapRoleHeader } from "@/components/roadmap/RoadmapRoleHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { appMonoStatClass, appPrimaryButtonClass, appSurfaceCardClass } from "@/lib/layout/app";
@@ -184,6 +185,10 @@ export default async function DashboardPage() {
             encouragement={encouragementMessage}
             showUnlockCta={!entitlements.canViewFullRoadmap}
           />
+
+          {entitlements.isPro && currentWork?.step_id ? (
+            <StudyCardPanel key={currentWork.step_id} stepId={currentWork.step_id} />
+          ) : null}
 
           <section
             className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-start"

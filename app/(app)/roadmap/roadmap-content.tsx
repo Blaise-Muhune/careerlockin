@@ -269,6 +269,7 @@ export function RoadmapContent({
         onOpenChange={(o) => !o && setSelectedStepId(null)}
         canUseTracking={canTrackStepsInSelectedPhase}
         isLockedView={selectedIsLocked}
+        isPro={isPro}
       />
     </>
   );

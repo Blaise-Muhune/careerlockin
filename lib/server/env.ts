@@ -32,6 +32,14 @@ const optional = z.object({
   ROADMAP_GENERATION_DISABLED: z.string().optional(),
   /** Max roadmap generations per user per rolling hour (default 3). */
   LLM_GENERATIONS_PER_HOUR: z.string().optional(),
+  JINA_API_KEY: z.string().min(1).optional(),
+  ONET_API_KEY: z.string().min(1).optional(),
+  ADZUNA_APP_ID: z.string().min(1).optional(),
+  ADZUNA_APP_KEY: z.string().min(1).optional(),
+  ADZUNA_COUNTRY: z.string().min(1).optional(),
+  JUDGE0_API_URL: z.string().min(1).optional(),
+  JUDGE0_API_KEY: z.string().min(1).optional(),
+  GITHUB_TOKEN: z.string().min(1).optional(),
 });
 
 const fullSchema = required.merge(optional).superRefine((data, ctx) => {
@@ -69,6 +77,14 @@ function getRaw(): Input {
     NEXT_PUBLIC_TWITTER_HANDLE: process.env.NEXT_PUBLIC_TWITTER_HANDLE,
     ROADMAP_GENERATION_DISABLED: process.env.ROADMAP_GENERATION_DISABLED,
     LLM_GENERATIONS_PER_HOUR: process.env.LLM_GENERATIONS_PER_HOUR,
+    JINA_API_KEY: process.env.JINA_API_KEY,
+    ONET_API_KEY: process.env.ONET_API_KEY,
+    ADZUNA_APP_ID: process.env.ADZUNA_APP_ID,
+    ADZUNA_APP_KEY: process.env.ADZUNA_APP_KEY,
+    ADZUNA_COUNTRY: process.env.ADZUNA_COUNTRY,
+    JUDGE0_API_URL: process.env.JUDGE0_API_URL,
+    JUDGE0_API_KEY: process.env.JUDGE0_API_KEY,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
   } as Input;
 }
 

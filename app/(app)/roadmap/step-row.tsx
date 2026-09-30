@@ -40,6 +40,9 @@ export function StepRow({
           Completed {new Date(initialDoneAt).toLocaleDateString()}
         </p>
       ) : null}
+      {step.is_market_optional && !isDone ? (
+        <p className="px-1 text-xs text-muted-foreground">Optional for current job posts</p>
+      ) : null}
       {isLocked && step.resources.length > 0 ? (
         <p className="px-1 text-xs text-muted-foreground">
           Resources are locked in this preview.

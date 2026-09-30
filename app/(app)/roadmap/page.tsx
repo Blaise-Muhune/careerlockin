@@ -27,6 +27,7 @@ import { getNetworkingGuidance } from "@/lib/server/networking/guidance";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GenerateRoadmapButton } from "@/app/(app)/dashboard/generate-roadmap-button";
 import { RoadmapRoleHeader } from "@/components/roadmap/RoadmapRoleHeader";
+import { RoleMatchButton } from "@/components/study/RoleMatchButton";
 import { appSurfaceCardClass } from "@/lib/layout/app";
 import { cn } from "@/lib/utils";
 
@@ -196,6 +197,7 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
         targetRole={roadmap.target_role}
         skills={profileForEdit?.prior_exposure}
       />
+      {entitlements.isPro ? <RoleMatchButton /> : null}
       {entitlements.canViewFullRoadmap && (
         <RegenerateRoadmapCard
           roadmapId={roadmap.id}

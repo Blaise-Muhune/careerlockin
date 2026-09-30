@@ -20,7 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { CheckoutCtas } from "@/components/billing/CheckoutCtas";
 import { MessageDraftCard } from "@/components/networking/MessageDraftCard";
+import Link from "next/link";
 import { startStepAction } from "@/app/actions/startStep";
+import { StudyCardPanel } from "@/components/study/StudyCardPanel";
 import { setWorkStatusAction } from "@/app/actions/setWorkStatus";
 import { toggleStep } from "@/app/actions/toggleStep";
 import type { MessageDraft } from "@/lib/networking/draftTypes";
@@ -148,7 +150,63 @@ type StepDetailModalProps = {
   onOpenChange: (open: boolean) => void;
   canUseTracking?: boolean;
   isLockedView?: boolean;
+  isPro?: boolean;
 };
+
+function ResourceBody({
+  isLockedView,
+  resources,
+}: {
+  isLockedView: boolean;
+  resources: RoadmapWithSteps["steps"][number]["resources"];
+}) {
+  if (isLockedView) {
+    return (
+      <div className="space-y-2">
+        <div className="h-2 w-32 rounded-full bg-muted" />
+        <div className="h-2 w-40 rounded-full bg-muted" />
+      </div>
+    );
+  }
+  if (resources.length === 0) {
+    return <p className="text-sm text-muted-foreground">No resources for this step.</p>;
+  }
+  return (
+    <ul className="space-y-1.5">
+      {resources.map((resource) => (
+        <li key={resource.id} className="flex flex-wrap items-center gap-2 text-sm">
+          <a
+            href={resource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 wrap-break-word text-primary hover:underline"
+          >
+            {resource.title}
+            <span aria-hidden className="text-muted-foreground">↗</span>
+          </a>
+          <span
+            className={cn(
+              "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+              resource.is_free ? "bg-success/15 text-success" : "text-muted-foreground"
+            )}
+          >
+            {resource.is_free ? "Free" : "Paid"}
+          </span>
+          {resource.verification_status === "verified" ? (
+            <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+              Verified
+            </span>
+          ) : null}
+          {resource.verification_status === "fallback" ? (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Curated
+            </span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function StepDetailModal({
   step,
@@ -163,6 +221,7 @@ export function StepDetailModal({
   onOpenChange,
   canUseTracking = true,
   isLockedView = false,
+  isPro = false,
 }: StepDetailModalProps) {
   const router = useRouter();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -290,54 +349,29 @@ export function StepDetailModal({
               </p>
             )}
 
-            {/* Resources — compact, always visible */}
+            {isPro && !isLockedView ? <StudyCardPanel key={stepData.id} stepId={stepData.id} /> : null}
+            {!isPro && !isLockedView ? (
+              <p className="mb-4 text-sm text-muted-foreground">
+                Pro turns this step into one example, one try, and one question.{" "}
+                <Link href="/pricing" className="font-medium text-foreground underline-offset-4 hover:underline">
+                  See Pro
+                </Link>
+              </p>
+            ) : null}
+
             <section className="mb-5 sm:mb-6" aria-label="Resources">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2.5">Resources</p>
-              {isLockedView ? (
-                <div className="space-y-2">
-                  <div className="h-2 w-32 rounded-full bg-muted" />
-                  <div className="h-2 w-40 rounded-full bg-muted" />
-                </div>
-              ) : step.resources.length > 0 ? (
-                <ul className="space-y-1.5">
-                  {step.resources.map((r) => (
-                    <li key={r.id} className="flex flex-wrap items-center gap-2 text-sm">
-                      <a
-                        href={r.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1 wrap-break-word"
-                      >
-                        {r.title}
-                        <span aria-hidden className="text-muted-foreground">↗</span>
-                      </a>
-                      <span
-                        className={cn(
-                          "shrink-0 text-[10px] font-medium uppercase tracking-wide rounded px-1.5 py-0.5",
-                          r.is_free
-                            ? "bg-success/15 text-success"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {r.is_free ? "Free" : "Paid"}
-                      </span>
-                      {r.verification_status === "verified" && (
-                        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide rounded px-1.5 py-0.5 bg-primary/15 text-primary">
-                          Verified
-                        </span>
-                      )}
-                      {r.verification_status === "fallback" && (
-                        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide rounded px-1.5 py-0.5 bg-muted text-muted-foreground">
-                          Curated
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+              {isPro && !isLockedView ? (
+                <details>
+                  <summary className="mb-2.5 cursor-pointer text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    More links
+                  </summary>
+                  <ResourceBody isLockedView={isLockedView} resources={step.resources} />
+                </details>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No resources for this step.
-                </p>
+                <>
+                  <p className="mb-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Resources</p>
+                  <ResourceBody isLockedView={isLockedView} resources={step.resources} />
+                </>
               )}
             </section>
 
