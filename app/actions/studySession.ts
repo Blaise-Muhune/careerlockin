@@ -18,6 +18,7 @@ import { listTimeLogsForWeek } from "@/lib/server/db/timeLogs";
 import { getLatestRoadmapForUser } from "@/lib/server/db/roadmaps";
 import { inspectPublicRepo } from "@/lib/server/study/github";
 import { generateStudyCard, writeCorrection } from "@/lib/server/study/generateCard";
+import { chooseStudyModeWithJev } from "@/lib/server/study/jev";
 import { readResourceMarkdown } from "@/lib/server/study/jina";
 import { runSnippet } from "@/lib/server/study/judge0";
 import { refreshRoadmapMarket } from "@/lib/server/study/refreshMarket";
@@ -99,13 +100,26 @@ export async function prepareStudyCard(stepId: string): Promise<StudyCardResult>
     return { ok: false, error: "You prepared several cards this hour. Use the one you have, then try again." };
   }
 
-  const profile = await getProfileForRoadmapEdit(access.userId);
-  const mode = chooseStudyMode({
-    weeklyHours: profile?.weekly_hours ?? 0,
-    loggedHours: 0,
-    learningPreference: profile?.learning_preference ?? null,
+  const [profile, logged] = await Promise.all([
+    getProfileForRoadmapEdit(access.userId),
+    loggedHoursThisWeek(access.userId),
+  ]);
+  const weekly = profile?.weekly_hours ?? 0;
+  const preference = profile?.learning_preference ?? null;
+  const rule = chooseStudyMode({
+    weeklyHours: weekly,
+    loggedHours: logged,
+    learningPreference: preference,
     reps: 0,
     due: null,
+  });
+  const mode = await chooseStudyModeWithJev({
+    rule,
+    title: access.step.title,
+    description: access.step.description,
+    learningPreference: preference,
+    weeklyHours: weekly,
+    loggedHours: logged,
   });
   if (mode === "rest") {
     return {

@@ -40,6 +40,8 @@ const optional = z.object({
   JUDGE0_API_URL: z.string().min(1).optional(),
   JUDGE0_API_KEY: z.string().min(1).optional(),
   GITHUB_TOKEN: z.string().min(1).optional(),
+  /** OpenRouter key for Jev study-mode decisions. */
+  OPENROUTER_API_KEY: z.string().min(1).optional(),
 });
 
 const fullSchema = required.merge(optional).superRefine((data, ctx) => {
@@ -85,6 +87,7 @@ function getRaw(): Input {
     JUDGE0_API_URL: process.env.JUDGE0_API_URL,
     JUDGE0_API_KEY: process.env.JUDGE0_API_KEY,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
   } as Input;
 }
 
